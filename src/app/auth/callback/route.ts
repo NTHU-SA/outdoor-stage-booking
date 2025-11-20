@@ -6,6 +6,7 @@ import type { NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const type = requestUrl.searchParams.get('type')
   const next = requestUrl.searchParams.get('next') || '/dashboard'
 
   if (code) {
@@ -32,9 +33,11 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-        // 如果是重設密碼流程，next 參數通常會指向重設密碼頁面
-        // 您需要在 Supabase 寄出的重設密碼連結中，確保 redirect_to 指向 /auth/callback?next=/reset-password
-        return NextResponse.redirect(new URL(next, request.url))
+        // 根據 type 決定重定向目標
+        // signup: 註冊確認後導向 dashboard
+        // recovery: 重設密碼流程導向 reset-password
+        const redirectPath = type === 'recovery' ? '/reset-password' : next
+        return NextResponse.redirect(new URL(redirectPath, request.url))
     }
   }
 

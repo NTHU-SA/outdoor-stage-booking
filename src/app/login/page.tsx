@@ -86,6 +86,14 @@ export default function LoginPage() {
     }
   }
 
+  // 動態計算重定向 URL（用於註冊確認和重設密碼）
+  // 根據當前環境自動判斷：localhost 或正式站
+  const getRedirectUrl = () => {
+    if (typeof window === 'undefined') return ''
+    // 使用當前頁面的 origin，這樣可以自動適應 localhost 或正式站
+    return `${origin}/auth/callback?next=/dashboard`
+  }
+
   if (!isMounted) return null
 
   return (
@@ -133,6 +141,7 @@ export default function LoginPage() {
           <Auth
             supabaseClient={supabase}
                 view={authView}
+            redirectTo={getRedirectUrl()}
             appearance={{ 
               theme: ThemeSupa,
               variables: {
@@ -165,6 +174,7 @@ export default function LoginPage() {
                     password_label: '密碼',
                     button_label: '註冊',
                     loading_button_label: '註冊中 ...',
+                    confirmation_text: '請查看您的信箱以進行驗證',
                 },
                 sign_in: {
                     email_label: '電子郵件',
