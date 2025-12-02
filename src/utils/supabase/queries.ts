@@ -20,9 +20,10 @@ export async function getRooms(includeInactive = false): Promise<Room[]> {
     .select('*')
     .order('name')
   
-  if (!includeInactive) {
-    query = query.eq('is_active', true)
-  }
+  // Removed is_active check as the column doesn't exist in current schema
+  // if (!includeInactive) {
+  //   query = query.eq('is_active', true)
+  // }
   
   const { data, error } = await query
   
