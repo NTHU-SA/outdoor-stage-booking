@@ -38,6 +38,7 @@ export function AppFooter() {
                       <span className="font-medium">地址：</span>
                       <br />
                       300044 新竹市光復路二段101號
+                      竹師教育學院大樓4樓423室
                     </p>
                     <p>
                       <span className="font-medium">電話：</span>

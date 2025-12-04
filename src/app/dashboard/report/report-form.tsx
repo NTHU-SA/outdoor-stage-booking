@@ -215,7 +215,7 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
               <FormItem>
                 <FormLabel>聯絡分機/手機 (Phone Number) *</FormLabel>
                 <FormControl>
-                  <Input placeholder="例：0912-345-678 或分機 1234" {...field} />
+                  <Input placeholder="例：0912345678 或分機 1234" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

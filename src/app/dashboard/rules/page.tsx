@@ -49,7 +49,7 @@ export default function RulesPage() {
                 <span>→</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">實驗完畢</span>
+                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">使用完畢</span>
                 <span>→</span>
               </div>
               <div className="flex items-center gap-2">
