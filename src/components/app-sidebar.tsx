@@ -196,8 +196,11 @@ export function AppSidebar() {
                   align="end"
                   sideOffset={4}
                 >
-                  <DropdownMenuLabel className="p-0 font-normal">
-                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <DropdownMenuItem
+                    className="p-0 font-normal focus:bg-transparent"
+                    onClick={() => router.push("/dashboard/profile")}
+                  >
+                    <div className="flex w-full cursor-pointer items-center gap-2 px-1 py-1.5 text-left text-sm">
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                       </Avatar>
@@ -206,7 +209,7 @@ export function AppSidebar() {
                         <span className="truncate text-xs">{user?.email || ''}</span>
                       </div>
                     </div>
-                  </DropdownMenuLabel>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 size-4" />

@@ -69,11 +69,13 @@ export default function AdminUsersPage() {
     const email = user.email?.toLowerCase() ?? ""
     const fullName = user.full_name?.toLowerCase() ?? ""
     const phone = user.phone?.toLowerCase() ?? ""
+    const department = user.department_name?.toLowerCase() ?? ""
 
     return (
       email.includes(keyword) ||
       fullName.includes(keyword) ||
-      phone.includes(keyword)
+      phone.includes(keyword) ||
+      department.includes(keyword)
     )
   })
 
@@ -139,7 +141,7 @@ export default function AdminUsersPage() {
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="搜尋姓名、Email 或電話..."
+              placeholder="搜尋姓名、Email、電話或所屬單位..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -154,6 +156,7 @@ export default function AdminUsersPage() {
             <TableRow>
               <TableHead>姓名</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>所屬單位</TableHead>
               <TableHead>職稱</TableHead>
               <TableHead>聯絡電話</TableHead>
               <TableHead>註冊時間</TableHead>
@@ -171,6 +174,11 @@ export default function AdminUsersPage() {
                   )}
                 </TableCell>
                 <TableCell className="font-medium">{user.email}</TableCell>
+                <TableCell>
+                  {user.department_name || (
+                    <span className="text-muted-foreground">未設定</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   {user.user_type ? (
                     <Badge variant="outline">
