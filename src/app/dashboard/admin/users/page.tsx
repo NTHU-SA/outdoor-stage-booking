@@ -19,7 +19,7 @@ import {
   toggleAdminRole, 
   type AdminUser 
 } from "@/app/actions/admin-users"
-import { Loader2, Trash2, Shield, ShieldOff, CheckCircle } from "lucide-react"
+import { Loader2, Trash2, Shield, ShieldOff, CheckCircle, Search } from "lucide-react"
 import { format } from "date-fns"
 import {
   AlertDialog,
@@ -32,11 +32,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+
+const USER_TYPE_LABELS: Record<string, string> = {
+  teacher: "教師",
+  staff: "職員",
+  assistant: "助教",
+  student: "學生",
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
 
   const loadUsers = async () => {
     try {
@@ -52,6 +61,21 @@ export default function AdminUsersPage() {
   useEffect(() => {
     loadUsers()
   }, [])
+
+  const filteredUsers = users.filter((user) => {
+    const keyword = searchTerm.trim().toLowerCase()
+    if (!keyword) return true
+
+    const email = user.email?.toLowerCase() ?? ""
+    const fullName = user.full_name?.toLowerCase() ?? ""
+    const phone = user.phone?.toLowerCase() ?? ""
+
+    return (
+      email.includes(keyword) ||
+      fullName.includes(keyword) ||
+      phone.includes(keyword)
+    )
+  })
 
   const handleApprove = async (userId: string, email: string) => {
     setActionLoading(userId)
@@ -102,10 +126,25 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">人員管理</h1>
-        <div className="text-sm text-muted-foreground">
-          共 {users.length} 位使用者
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">人員管理</h1>
+          <div className="mt-1 text-sm text-muted-foreground">
+            共 {users.length} 位使用者
+            {searchTerm.trim() &&
+              `，符合搜尋條件的有 ${filteredUsers.length} 位`}
+          </div>
+        </div>
+        <div className="w-full max-w-xs">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="搜尋姓名、Email 或電話..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </div>
       </div>
 
@@ -113,7 +152,10 @@ export default function AdminUsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>姓名</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>職稱</TableHead>
+              <TableHead>聯絡電話</TableHead>
               <TableHead>註冊時間</TableHead>
               <TableHead>狀態</TableHead>
               <TableHead>權限</TableHead>
@@ -121,9 +163,28 @@ export default function AdminUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <TableRow key={user.id}>
+                <TableCell className="font-medium">
+                  {user.full_name || (
+                    <span className="text-muted-foreground">未填寫</span>
+                  )}
+                </TableCell>
                 <TableCell className="font-medium">{user.email}</TableCell>
+                <TableCell>
+                  {user.user_type ? (
+                    <Badge variant="outline">
+                      {USER_TYPE_LABELS[user.user_type] ?? user.user_type}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">未設定</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {user.phone || (
+                    <span className="text-muted-foreground">未填寫</span>
+                  )}
+                </TableCell>
                 <TableCell>{format(new Date(user.created_at), 'yyyy/MM/dd HH:mm')}</TableCell>
                 <TableCell>
                   {user.is_approved ? (

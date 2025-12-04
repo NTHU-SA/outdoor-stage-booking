@@ -14,6 +14,9 @@ export type AdminUser = {
   is_approved: boolean
   created_at: string
   last_sign_in_at: string | null
+  full_name: string | null
+  user_type: string | null
+  phone: string | null
 }
 
 // Ensure current user is admin
@@ -47,7 +50,7 @@ export async function getUsers(): Promise<AdminUser[]> {
   // 2. Get all profiles
   const { data: profiles, error: profilesError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, is_approved')
+    .select('id, role, is_approved, full_name, user_type, phone')
   
   if (profilesError) throw profilesError
 
@@ -61,6 +64,9 @@ export async function getUsers(): Promise<AdminUser[]> {
       is_approved: profile?.is_approved || false,
       created_at: user.created_at,
       last_sign_in_at: user.last_sign_in_at || null,
+      full_name: profile?.full_name ?? null,
+      user_type: profile?.user_type ?? null,
+      phone: profile?.phone ?? null,
     }
   })
 
@@ -113,10 +119,30 @@ export async function deleteUser(userId: string) {
   await requireAdmin()
   const supabaseAdmin = createServiceClient()
 
-  // Delete from auth.users (cascades to profiles usually, but better to be safe)
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-  
-  if (error) throw error
+  // 1. 刪除此使用者相關的業務資料（例如預約紀錄）
+  const { error: bookingsError } = await supabaseAdmin
+    .from('bookings')
+    .delete()
+    .eq('user_id', userId)
+
+  if (bookingsError) {
+    throw bookingsError
+  }
+
+  // 2. 刪除 profile（避免 FK 造成 auth.users 無法刪除）
+  const { error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .delete()
+    .eq('id', userId)
+
+  if (profileError) {
+    throw profileError
+  }
+
+  // 3. 最後刪除 auth.users 帳號
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+  if (authError) throw authError
   revalidatePath('/dashboard/admin/users')
 }
 
