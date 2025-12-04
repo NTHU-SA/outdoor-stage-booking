@@ -56,6 +56,7 @@ DECLARE
   v_phone TEXT;
   v_user_type TEXT;
   v_supervisor_name TEXT;
+  v_department_id INT;
   v_user_type_enum public.user_type_enum;  -- 明確指定 schema
 BEGIN
   -- 安全地提取所有 metadata 值
@@ -63,6 +64,19 @@ BEGIN
   v_phone := NULLIF(TRIM(COALESCE(new.raw_user_meta_data->>'phone', '')), '');
   v_user_type := NULLIF(TRIM(COALESCE(new.raw_user_meta_data->>'user_type', '')), '');
   v_supervisor_name := NULLIF(TRIM(COALESCE(new.raw_user_meta_data->>'supervisor_name', '')), '');
+  v_department_id := NULL;
+
+  -- 嘗試從 metadata 解析 department_id（數字）
+  IF COALESCE(TRIM(new.raw_user_meta_data->>'department_id'), '') <> '' THEN
+    BEGIN
+      v_department_id := (new.raw_user_meta_data->>'department_id')::INT;
+    EXCEPTION
+      WHEN OTHERS THEN
+        v_department_id := NULL;
+        RAISE WARNING 'Failed to convert department_id % to int: %',
+          new.raw_user_meta_data->>'department_id', SQLERRM;
+    END;
+  END IF;
   
   -- 安全地轉換 user_type 為 enum（明確使用 public schema）
   v_user_type_enum := NULL;
@@ -93,6 +107,7 @@ BEGIN
       user_type,
       supervisor_name,
       phone,
+      department_id,
       updated_at
     )
     VALUES (
@@ -102,6 +117,7 @@ BEGIN
       v_user_type_enum,
       v_supervisor_name,
       v_phone,
+      v_department_id,
       NOW()
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -109,6 +125,7 @@ BEGIN
       user_type = COALESCE(EXCLUDED.user_type, profiles.user_type),
       supervisor_name = COALESCE(EXCLUDED.supervisor_name, profiles.supervisor_name),
       phone = COALESCE(EXCLUDED.phone, profiles.phone),
+      department_id = COALESCE(EXCLUDED.department_id, profiles.department_id),
       updated_at = NOW();
   EXCEPTION
     WHEN OTHERS THEN

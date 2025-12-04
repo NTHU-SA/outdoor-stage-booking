@@ -47,11 +47,19 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [signUpFullName, setSignUpFullName] = useState("")
   const [signUpPhone, setSignUpPhone] = useState("")
+  const [signUpDepartmentId, setSignUpDepartmentId] = useState<string>("")
   const [signUpUserType, setSignUpUserType] = useState<"teacher" | "staff" | "assistant" | "student" | "">("")
   const [signUpSupervisor, setSignUpSupervisor] = useState("")
   const [isSigningUp, setIsSigningUp] = useState(false)
   const [showSignUpPassword, setShowSignUpPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  type Department = {
+    id: number
+    name: string
+  }
+
+  const [departments, setDepartments] = useState<Department[]>([])
 
   useEffect(() => {
     setIsMounted(true)
@@ -63,6 +71,26 @@ export default function LoginPage() {
 
     return () => subscription.unsubscribe()
   }, [router, supabase.auth])
+
+  // Load departments for sign up select
+  useEffect(() => {
+    const loadDepartments = async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name')
+        .order('id')
+
+      if (error) {
+        console.error(error)
+        toast.error("載入所屬單位失敗")
+        return
+      }
+
+      setDepartments(data || [])
+    }
+
+    loadDepartments()
+  }, [supabase])
 
   // Timer effect for cooldown
   useEffect(() => {
@@ -171,6 +199,11 @@ export default function LoginPage() {
           toast.error("請輸入聯絡電話")
           return
       }
+
+      if (!signUpDepartmentId) {
+          toast.error("請選擇所屬單位")
+          return
+      }
       
       if (!signUpUserType) {
           toast.error("請選擇身份別")
@@ -199,6 +232,7 @@ export default function LoginPage() {
                   data: {
                       full_name: signUpFullName,
                       phone: signUpPhone,
+                      department_id: signUpDepartmentId ? Number(signUpDepartmentId) : null,
                       user_type: signUpUserType,
                       supervisor_name: signUpUserType === 'student' ? signUpSupervisor : null,
                   }
@@ -352,6 +386,24 @@ export default function LoginPage() {
                             onChange={(e) => setSignUpPhone(e.target.value)}
                             required
                         />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-department">所屬單位 <span className="text-red-500">*</span></Label>
+                        <Select
+                          value={signUpDepartmentId}
+                          onValueChange={(value) => setSignUpDepartmentId(value)}
+                        >
+                          <SelectTrigger id="signup-department">
+                              <SelectValue placeholder="請選擇所屬單位" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {departments.map((dept) => (
+                                <SelectItem key={dept.id} value={String(dept.id)}>
+                                  {dept.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="signup-user-type">身份別 <span className="text-red-500">*</span></Label>
