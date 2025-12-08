@@ -125,8 +125,9 @@ export default function LoginPage() {
         toast.success("重設密碼信件已發送，請檢查您的信箱")
         setCooldown(60)
         setIsDialogOpen(false)
-    } catch (error: any) {
-        toast.error(error.message || "發送失敗，請稍後再試")
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "發送失敗，請稍後再試"
+        toast.error(message)
     } finally {
         setIsResetting(false)
     }
@@ -178,7 +179,7 @@ export default function LoginPage() {
       }
       // Redirect handled by onAuthStateChange
       toast.success("登入成功")
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("發生未預期的錯誤，請稍後再試")
       console.error(error)
     } finally {
@@ -256,7 +257,7 @@ export default function LoginPage() {
           // 跳轉到註冊成功頁面
           router.push(`/signup-success?email=${encodeURIComponent(signUpEmail)}`)
           
-      } catch (error: any) {
+      } catch (error: unknown) {
           toast.error("發生未預期的錯誤")
           console.error(error)
       } finally {

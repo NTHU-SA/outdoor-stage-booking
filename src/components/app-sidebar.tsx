@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, Search, Settings, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList } from "lucide-react"
+import { Calendar, Home, Inbox, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -17,9 +17,9 @@ import {
 import { useUser } from "@/hooks/use-user"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter, usePathname } from "next/navigation"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useEffect, useState, useId } from "react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -81,7 +81,7 @@ const adminItems = [
 ]
 
 export function AppSidebar() {
-  const { user, loading } = useUser()
+  const { user } = useUser()
   const [isAdmin, setIsAdmin] = useState(false)
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
@@ -90,6 +90,7 @@ export function AppSidebar() {
 
   // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 
@@ -107,7 +108,7 @@ export function AppSidebar() {
     }
 
     checkAdmin()
-  }, [user])
+  }, [user, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()

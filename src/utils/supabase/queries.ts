@@ -5,17 +5,22 @@ export type Room = {
   name: string
   room_code: string | null
   capacity: number | null
-  unavailable_periods: any
-  equipment: any
+  unavailable_periods: {
+    day: number
+    start: string
+    end: string
+  }[] | null
+  equipment: unknown[] | null
   floor: string | null
   room_type: string | null
   image_url: string | null
   is_active: boolean | null
 }
 
-export async function getRooms(includeInactive = false): Promise<Room[]> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function getRooms(_includeInactive = false): Promise<Room[]> {
   const supabase = await createClient()
-  let query = supabase
+  const query = supabase
     .from('rooms')
     .select('*')
     .order('name')

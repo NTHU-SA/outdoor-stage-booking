@@ -55,9 +55,19 @@ export async function getUsers(): Promise<AdminUser[]> {
   
   if (profilesError) throw profilesError
 
+  type ProfileRow = {
+    id: string
+    role: string | null
+    is_approved: boolean | null
+    full_name: string | null
+    user_type: string | null
+    phone: string | null
+    department?: { name: string } | null
+  }
+
   // 3. Merge data (only for verified users)
   const mergedUsers = verifiedUsers.map(user => {
-    const profile = profiles.find(p => p.id === user.id)
+    const profile = (profiles?.find((p) => p.id === user.id) as ProfileRow | undefined)
     return {
       id: user.id,
       email: user.email || '',
@@ -68,7 +78,7 @@ export async function getUsers(): Promise<AdminUser[]> {
       full_name: profile?.full_name ?? null,
       user_type: profile?.user_type ?? null,
       phone: profile?.phone ?? null,
-      department_name: (profile as any)?.department?.name ?? null,
+      department_name: profile?.department?.name ?? null,
     }
   })
 

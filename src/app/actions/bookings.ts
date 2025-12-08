@@ -3,6 +3,18 @@
 import { createClient } from '@/utils/supabase/server'
 import { TimetableEvent } from '@/utils/supabase/queries'
 
+type BookingRow = {
+  id: string
+  start_time: string
+  end_time: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
+  purpose: string | null
+  profiles: {
+    full_name: string | null
+    username: string | null
+  } | null
+}
+
 export async function getRoomBookings(roomId: string): Promise<TimetableEvent[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -36,12 +48,16 @@ export async function getRoomBookings(roomId: string): Promise<TimetableEvent[]>
     .in('status', ['pending', 'approved']) 
     .gte('end_time', new Date().toISOString())
     
-  if (error) {
-    console.error('Error fetching room bookings:', error)
+  if (error || !data) {
+    if (error) {
+      console.error('Error fetching room bookings:', error)
+    }
     return []
   }
 
-  return data.map((booking: any) => {
+  const bookings = data as unknown as BookingRow[]
+
+  return bookings.map((booking) => {
     let title = ''
     let details = ''
 

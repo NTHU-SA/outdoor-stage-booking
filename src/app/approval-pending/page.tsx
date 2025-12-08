@@ -3,46 +3,36 @@
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
-import { LogOut, Clock, RefreshCw } from "lucide-react"
-import { useEffect, useState } from "react"
+import { LogOut, Clock } from "lucide-react"
+import { useEffect } from "react"
 
 export default function ApprovalPendingPage() {
   const supabase = createClient()
   const router = useRouter()
-  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push("/login")
   }
 
-  const checkStatus = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('role, is_approved')
-            .eq('id', user.id)
-            .single()
-        
-        setDebugInfo({
-            email: user.email,
-            id: user.id,
-            role: profile?.role,
-            is_approved: profile?.is_approved,
-            error: error?.message
-        })
-
-        // If actually approved or admin, redirect
-        if (profile?.role === 'admin' || profile?.is_approved) {
-            router.push('/dashboard')
-        }
-    }
-  }
-
   useEffect(() => {
+    const checkStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+          const { data: profile } = await supabase
+              .from('profiles')
+              .select('role, is_approved')
+              .eq('id', user.id)
+              .single()
+
+          // If actually approved or admin, redirect
+          if (profile?.role === 'admin' || profile?.is_approved) {
+              router.push('/dashboard')
+          }
+      }
+    }
     checkStatus()
-  }, [])
+  }, [supabase, router])
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/50 p-4">

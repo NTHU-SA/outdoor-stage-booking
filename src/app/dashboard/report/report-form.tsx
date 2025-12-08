@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
-import { CalendarIcon, Loader2, Upload, X, Image as ImageIcon, FileText } from "lucide-react"
+import { CalendarIcon, Loader2, Upload, X, FileText } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {

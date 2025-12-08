@@ -41,8 +41,9 @@ export default function ResetPasswordPage() {
 
       toast.success("密碼已成功重設")
       router.push("/dashboard")
-    } catch (error: any) {
-      toast.error(error.message || "重設密碼失敗")
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "重設密碼失敗"
+      toast.error(message)
     } finally {
       setLoading(false)
     }

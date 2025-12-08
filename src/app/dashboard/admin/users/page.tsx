@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
     try {
       const data = await getUsers()
       setUsers(data)
-    } catch (error) {
+    } catch {
       toast.error("載入使用者失敗")
     } finally {
       setIsLoading(false)
@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
       await approveUser(userId, email)
       toast.success(`已核准使用者 ${email}`)
       await loadUsers()
-    } catch (error) {
+    } catch {
       toast.error("核准失敗")
     } finally {
       setActionLoading(null)
@@ -98,7 +98,7 @@ export default function AdminUsersPage() {
       await deleteUser(userId)
       toast.success("使用者已刪除")
       await loadUsers()
-    } catch (error) {
+    } catch {
       toast.error("刪除失敗")
     } finally {
       setActionLoading(null)
@@ -111,7 +111,7 @@ export default function AdminUsersPage() {
       await toggleAdminRole(userId, currentRole)
       toast.success("權限已更新")
       await loadUsers()
-    } catch (error) {
+    } catch {
       toast.error("更新失敗")
     } finally {
       setActionLoading(null)

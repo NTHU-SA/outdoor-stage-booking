@@ -33,7 +33,7 @@ export function ActionButtons({ bookingId }: { bookingId: string }) {
       if (!response.ok) throw new Error('操作失敗')
       toast.success("已核准預約")
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error("核准失敗")
     } finally {
       setIsLoading(false)
@@ -52,7 +52,7 @@ export function ActionButtons({ bookingId }: { bookingId: string }) {
       toast.success("已拒絕預約")
       setIsRejectDialogOpen(false)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error("拒絕失敗")
     } finally {
       setIsLoading(false)

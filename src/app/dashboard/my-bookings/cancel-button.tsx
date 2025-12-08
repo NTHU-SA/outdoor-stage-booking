@@ -31,7 +31,7 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
 
       toast.success("已取消預約")
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error("取消失敗，請稍後再試")
     } finally {
       setIsLoading(false)

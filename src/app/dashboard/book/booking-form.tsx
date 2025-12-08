@@ -146,8 +146,6 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   }, [semesterSettings.length])
 
   async function onSubmit(values: z.infer<typeof bookingFormSchema>) {
-    const supabase = createClient()
-    
     const startDateTime = new Date(values.date)
     const [startHour, startMinute] = values.startTime.split(':').map(Number)
     startDateTime.setHours(startHour, startMinute, 0, 0)
@@ -231,8 +229,9 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
         toast.success("預約申請已送出")
         form.reset()
         router.push('/dashboard/my-bookings')
-    } catch (error: any) {
-        toast.error(error.message)
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : '預約失敗'
+        toast.error(message)
     }
   }
 
@@ -257,7 +256,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
         {!isAdmin && isNextSemesterLocked && (
           <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-amber-900 dark:text-amber-200">
                   下學期課表尚未確認

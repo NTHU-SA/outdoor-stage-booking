@@ -56,7 +56,7 @@ export default async function SpaceDetailPage({ params }: { params: Promise<{ id
                 <div className="text-sm text-muted-foreground">
                      {Array.isArray(room.equipment) && room.equipment.length > 0 ? (
                         <ul className="list-disc list-inside">
-                            {room.equipment.map((item: any, i: number) => (
+                            {room.equipment.map((item: unknown, i: number) => (
                                 <li key={i}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>
                             ))}
                         </ul>
