@@ -15,7 +15,7 @@ type BookingRow = {
   } | null
 }
 
-export async function getRoomBookings(roomId: string): Promise<TimetableEvent[]> {
+export async function getRoomBookings(roomId: string, excludeBookingId?: string): Promise<TimetableEvent[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -31,7 +31,7 @@ export async function getRoomBookings(roomId: string): Promise<TimetableEvent[]>
 
   // Query bookings for the specific room
   // Filter out cancelled bookings
-  const { data, error } = await supabase
+  let query = supabase
     .from('bookings')
     .select(`
       id,
@@ -47,6 +47,13 @@ export async function getRoomBookings(roomId: string): Promise<TimetableEvent[]>
     .eq('room_id', roomId)
     .in('status', ['pending', 'approved']) 
     .gte('end_time', new Date().toISOString())
+
+  // Exclude a specific booking if provided (useful when editing)
+  if (excludeBookingId) {
+    query = query.neq('id', excludeBookingId)
+  }
+
+  const { data, error } = await query
     
   if (error || !data) {
     if (error) {

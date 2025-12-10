@@ -18,9 +18,11 @@ type RoomTimetableProps = {
   roomId: string
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void
   selectedSlot?: { start: Date; end: Date } | null
+  excludeBookingId?: string
+  focusDate?: Date
 }
 
-export function RoomTimetable({ roomId, onSelectSlot, selectedSlot }: RoomTimetableProps) {
+export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate }: RoomTimetableProps) {
   const [events, setEvents] = useState<TimetableEvent[]>([])
   const [loading, setLoading] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
@@ -29,18 +31,26 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot }: RoomTimeta
     if (!roomId) return
     setLoading(true)
     try {
-      const data = await getRoomBookings(roomId)
+      const data = await getRoomBookings(roomId, excludeBookingId)
       setEvents(data)
     } catch (error) {
       console.error('Failed to fetch events', error)
     } finally {
       setLoading(false)
     }
-  }, [roomId])
+  }, [roomId, excludeBookingId])
 
   useEffect(() => {
     fetchEvents()
   }, [fetchEvents])
+
+  // Navigate calendar to focusDate when it changes
+  useEffect(() => {
+    if (focusDate && calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi()
+      calendarApi.gotoDate(focusDate)
+    }
+  }, [focusDate])
 
   // Transform TimetableEvent to FullCalendar EventInput format
   const calendarEvents: EventInput[] = events.map((event) => {

@@ -20,7 +20,8 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleCancel = async () => {
+  const handleCancel = async (e: React.MouseEvent) => {
+    e.preventDefault()
     setIsLoading(true)
     try {
       const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
@@ -45,7 +46,7 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
           取消
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
         <AlertDialogHeader>
           <AlertDialogTitle>確定要取消此預約嗎？</AlertDialogTitle>
           <AlertDialogDescription>
@@ -53,7 +54,7 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>保留</AlertDialogCancel>
+          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>保留</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleCancel} 
             className="bg-red-600 hover:bg-red-700 focus:ring-red-600"

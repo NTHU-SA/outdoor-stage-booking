@@ -123,7 +123,7 @@ export default async function AdminApprovalsPage({
                     </TableCell>
                     <TableCell className="text-right w-[140px] pl-2">
                       {booking.status === 'pending' && (
-                        <ActionButtons bookingId={booking.id} />
+                      <ActionButtons bookingId={booking.id} />
                       )}
                     </TableCell>
                   </TableRow>

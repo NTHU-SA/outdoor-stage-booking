@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Form,
@@ -47,6 +46,7 @@ import { useRouter } from "next/navigation"
 import type { Room } from "@/utils/supabase/queries"
 import type { Booking } from "@/utils/supabase/queries"
 import type { SemesterSetting } from "@/utils/semester"
+import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
 import { 
   isDateWithin4Months, 
   isDateInLockedPeriod, 
@@ -91,12 +91,13 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   const [isLoading, setIsLoading] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [semesters, setSemesters] = useState<SemesterSetting[]>(semesterSettings)
+  const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
   const router = useRouter()
 
   const form = useForm<z.infer<typeof bookingFormSchema>>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
-      roomId: "",
+      roomId: booking.room_id || booking.room?.id || "",
       date: new Date(booking.start_time),
       startTime: format(new Date(booking.start_time), "HH:mm"),
       endTime: format(new Date(booking.end_time), "HH:mm"),
@@ -104,21 +105,45 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     },
   })
 
-  // Find room ID from booking
+  // Update form when booking changes (though key prop in parent should handle this)
   useEffect(() => {
-    // Try to get room_id from booking first
-    if (booking.room_id) {
-      form.setValue("roomId", booking.room_id)
-    } else if (booking.room.id) {
-      form.setValue("roomId", booking.room.id)
-    } else {
-      // Fallback: find by name and code
-      const room = rooms.find(r => r.name === booking.room.name && r.room_code === booking.room.room_code)
-      if (room) {
-        form.setValue("roomId", room.id)
-      }
+    form.reset({
+      roomId: booking.room_id || booking.room?.id || "",
+      date: new Date(booking.start_time),
+      startTime: format(new Date(booking.start_time), "HH:mm"),
+      endTime: format(new Date(booking.end_time), "HH:mm"),
+      purpose: booking.purpose,
+    })
+  }, [booking, form])
+
+
+  // Update selectedSlot when form values change
+  const date = form.watch("date")
+  const startTime = form.watch("startTime")
+  const endTime = form.watch("endTime")
+  
+  useEffect(() => {
+    if (date && startTime && endTime) {
+      const [startHour, startMinute] = startTime.split(':').map(Number)
+      const [endHour, endMinute] = endTime.split(':').map(Number)
+      
+      const start = new Date(date)
+      start.setHours(startHour, startMinute, 0, 0)
+      
+      const end = new Date(date)
+      end.setHours(endHour, endMinute, 0, 0)
+      
+      setSelectedSlot({ start, end })
     }
-  }, [booking, rooms, form])
+  }, [date, startTime, endTime])
+
+  // Handle slot selection from timetable
+  const handleSlotSelect = (slotInfo: { start: Date; end: Date }) => {
+    form.setValue("date", slotInfo.start)
+    form.setValue("startTime", format(slotInfo.start, "HH:mm"))
+    form.setValue("endTime", format(slotInfo.end, "HH:mm"))
+    setSelectedSlot(slotInfo)
+  }
 
   // Check user role and fetch semesters
   useEffect(() => {
@@ -264,20 +289,24 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <>
+      <div onClick={() => setOpen(true)} className="inline-block">
         {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>編輯預約</DialogTitle>
           <DialogDescription>
-            修改預約資訊。請注意，修改後的預約需要重新審核。
+            修改預約資訊。請注意，修改後的預約需要重新審核。點擊右側行事曆空白處可快速填入時間。
           </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Left Column: Form */}
+              <div className="space-y-6">
             {/* Warning banner for locked semester */}
             {!isAdmin && isNextSemesterLocked && (
               <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
@@ -473,10 +502,33 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                 儲存變更
               </Button>
             </div>
+              </div>
+
+              {/* Right Column: Timetable */}
+              <div className="space-y-4">
+                <div className="text-sm font-medium">
+                  空間預約狀況 - {rooms.find(r => r.id === form.watch("roomId"))?.name || '選擇空間'}
+                </div>
+                {form.watch("roomId") ? (
+                  <RoomTimetable
+                    roomId={form.watch("roomId")}
+                    onSelectSlot={handleSlotSelect}
+                    selectedSlot={selectedSlot}
+                    excludeBookingId={booking.id}
+                    focusDate={form.watch("date")}
+                  />
+                ) : (
+                  <div className="h-[600px] flex items-center justify-center text-muted-foreground border rounded-lg">
+                    請先選擇空間
+                  </div>
+                )}
+              </div>
+            </div>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+    </>
   )
 }
 

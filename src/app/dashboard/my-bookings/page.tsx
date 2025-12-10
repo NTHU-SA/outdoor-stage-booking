@@ -52,10 +52,10 @@ export default async function MyBookingsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>空間代碼</TableHead>
-                <TableHead>空間名稱</TableHead>
+                <TableHead>編號</TableHead>
+                <TableHead>名稱</TableHead>
                 <TableHead>樓層</TableHead>
-                <TableHead>可容納人數</TableHead>
+                <TableHead>人限</TableHead>
                 <TableHead>日期</TableHead>
                 <TableHead>時段</TableHead>
                 <TableHead>事由</TableHead>
@@ -77,11 +77,6 @@ export default async function MyBookingsPage() {
                     <TableCell className="font-medium">{booking.room.room_code}</TableCell>
                     <TableCell>
                       {booking.room.name}
-                      {booking.room.room_type && (
-                        <span className="text-muted-foreground text-sm ml-1">
-                          ({booking.room.room_type})
-                        </span>
-                      )}
                     </TableCell>
                     <TableCell>{booking.room.floor}</TableCell>
                     <TableCell>{booking.room.capacity ? `${booking.room.capacity}人` : '-'}</TableCell>
