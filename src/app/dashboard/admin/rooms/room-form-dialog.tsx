@@ -75,6 +75,9 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
 
   const floorOptions = ["B1F", "1F", "2F", "3F", "4F", "5F", "6F", "7F", "8F"]
 
+  // Meeting rooms don't need unavailable periods (no semester schedule dependency)
+  const isMeetingRoom = roomType === "Meeting"
+
   // Reset form when dialog opens or room changes
   useEffect(() => {
     if (open && room) {
@@ -179,16 +182,19 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className={isMeetingRoom ? "sm:max-w-[500px] max-h-[90vh] overflow-y-auto" : "sm:max-w-[1000px] max-h-[90vh] overflow-y-auto"}>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{mode === "create" ? "新增空間" : "編輯空間"}</DialogTitle>
             <DialogDescription>
-              請輸入空間詳細資訊。右側課表勾選的時段將不開放借用。
+              {isMeetingRoom 
+                ? "請輸入空間詳細資訊。Meeting 類型空間不需設定課表時段限制。"
+                : "請輸入空間詳細資訊。右側課表勾選的時段將不開放借用。"
+              }
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 py-4">
+          <div className={isMeetingRoom ? "py-4" : "grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 py-4"}>
             <div className="space-y-4">
             {/* Image Upload Section */}
             <div className="flex flex-col items-center gap-4">
@@ -350,15 +356,18 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
             </div>
             </div>
 
-            <div className="space-y-3">
-               <div>
-                 <Label className="text-base font-semibold">不開放借用時段</Label>
-                 <p className="text-sm text-muted-foreground mt-1">
-                   勾選的時段將不開放給使用者借用
-                 </p>
-               </div>
-               <RoomAvailabilityTable value={unavailablePeriods} onChange={setUnavailablePeriods} />
-            </div>
+            {/* Unavailable periods section - hidden for Meeting rooms */}
+            {!isMeetingRoom && (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-base font-semibold">不開放借用時段</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    勾選的時段將不開放給使用者借用
+                  </p>
+                </div>
+                <RoomAvailabilityTable value={unavailablePeriods} onChange={setUnavailablePeriods} />
+              </div>
+            )}
           </div>
         </form>
       </DialogContent>

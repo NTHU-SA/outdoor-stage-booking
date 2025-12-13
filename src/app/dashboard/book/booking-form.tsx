@@ -178,8 +178,10 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
         return
       }
       
-      // Check semester lock for non-admins
-      if (isDateInLockedPeriod(startDateTime, semesters, false)) {
+      // Check semester lock for non-admins (skip for Meeting rooms)
+      const roomToBook = rooms.find(r => r.id === values.roomId)
+      const isBookingMeetingRoom = roomToBook?.room_type === "Meeting"
+      if (!isBookingMeetingRoom && isDateInLockedPeriod(startDateTime, semesters, false)) {
         toast.error("下學期課表尚未確認，暫不開放預約")
         return
       }
@@ -249,11 +251,16 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   const maxBookableDate = getMaxBookableDate()
   const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
 
+  // Get selected room's type to determine if semester lock applies
+  const watchedRoomId = form.watch("roomId")
+  const currentSelectedRoom = rooms.find(r => r.id === watchedRoomId)
+  const isMeetingRoom = currentSelectedRoom?.room_type === "Meeting"
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* Warning banner for locked semester */}
-        {!isAdmin && isNextSemesterLocked && (
+        {/* Warning banner for locked semester - not shown for Meeting rooms */}
+        {!isAdmin && isNextSemesterLocked && !isMeetingRoom && (
           <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
@@ -268,13 +275,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
             </div>
           </div>
         )}
-        
-        {/* Info banner for 4-month limit */}
-        {!isAdmin && (
-          <div className="text-sm text-muted-foreground">
-            一般使用者可預約至 {format(maxBookableDate, 'yyyy/MM/dd', { locale: zhTW })}（4 個月內）
-          </div>
-        )}
+
         <FormField
           control={form.control}
           name="roomId"
@@ -357,8 +358,8 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                          // 4-month limit
                          if (!isDateWithin4Months(date)) return true
                          
-                         // Semester lock
-                         if (isDateInLockedPeriod(date, semesters, false)) return true
+                         // Semester lock (skip for Meeting rooms)
+                         if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                       }
                       
                       return false

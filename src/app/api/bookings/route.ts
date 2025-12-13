@@ -54,6 +54,19 @@ export async function POST(request: Request) {
     
     const isAdmin = profile?.role === 'admin'
 
+    // Fetch room info first (need room_type for semester lock check)
+    const { data: room } = await supabase
+      .from('rooms')
+      .select('unavailable_periods, room_type')
+      .eq('id', body.roomId)
+      .single()
+      
+    if (!room) {
+      return NextResponse.json({ error: '空間不存在' }, { status: 404 })
+    }
+
+    const isMeetingRoom = room.room_type === "Meeting"
+
     // Fetch semester settings for date restrictions
     const { data: semesterData } = await supabase
       .from('semester_settings')
@@ -78,23 +91,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: '一般使用者僅能借用未來 4 個月內的日期' }, { status: 400 })
       }
       
-      // 3. Check semester lock for non-admins
-      if (isDateInLockedPeriod(startTime, semesters, false)) {
+      // 3. Check semester lock for non-admins (skip for Meeting rooms)
+      if (!isMeetingRoom && isDateInLockedPeriod(startTime, semesters, false)) {
         return NextResponse.json({ error: '下學期課表尚未確認，暫不開放預約' }, { status: 400 })
       }
     }
 
     // 4. Check unavailable periods (including lunch lock if configured)
-    // Check `unavailable_periods` JSONB column
-    const { data: room } = await supabase
-      .from('rooms')
-      .select('unavailable_periods')
-      .eq('id', body.roomId)
-      .single()
-      
-    if (!room) {
-      return NextResponse.json({ error: '空間不存在' }, { status: 404 })
-    }
 
     if (room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
       const periods = room.unavailable_periods as UnavailablePeriod[]

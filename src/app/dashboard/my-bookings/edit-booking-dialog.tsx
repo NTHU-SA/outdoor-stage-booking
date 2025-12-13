@@ -213,8 +213,10 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
         return
       }
       
-      // Check semester lock
-      if (isDateInLockedPeriod(startDateTime, semesters, false)) {
+      // Check semester lock (skip for Meeting rooms)
+      const roomToBook = rooms.find(r => r.id === values.roomId)
+      const isBookingMeetingRoom = roomToBook?.room_type === "Meeting"
+      if (!isBookingMeetingRoom && isDateInLockedPeriod(startDateTime, semesters, false)) {
         toast.error("下學期課表尚未確認，暫不開放預約")
         setIsLoading(false)
         return
@@ -288,6 +290,11 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   const maxBookableDate = getMaxBookableDate()
   const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
 
+  // Get selected room's type to determine if semester lock applies
+  const selectedRoomId = form.watch("roomId")
+  const selectedRoom = rooms.find(r => r.id === selectedRoomId)
+  const isMeetingRoom = selectedRoom?.room_type === "Meeting"
+
   return (
     <>
       <div onClick={() => setOpen(true)} className="inline-block">
@@ -307,8 +314,8 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Left Column: Form */}
               <div className="space-y-6">
-            {/* Warning banner for locked semester */}
-            {!isAdmin && isNextSemesterLocked && (
+            {/* Warning banner for locked semester - not shown for Meeting rooms */}
+            {!isAdmin && isNextSemesterLocked && !isMeetingRoom && (
               <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
@@ -324,12 +331,6 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
               </div>
             )}
             
-            {/* Info banner for 4-month limit */}
-            {!isAdmin && (
-              <div className="text-sm text-muted-foreground">
-                一般使用者可預約至 {format(maxBookableDate, 'yyyy/MM/dd', { locale: zhTW })}（4 個月內）
-              </div>
-            )}
 
             <FormField
               control={form.control}
@@ -405,7 +406,8 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                              
                              if (!isDateWithin4Months(date)) return true
                              
-                             if (isDateInLockedPeriod(date, semesters, false)) return true
+                             // Semester lock (skip for Meeting rooms)
+                             if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                           }
                           
                           return false

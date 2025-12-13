@@ -146,9 +146,6 @@ export function AppFooter() {
                   <p>
                     本系統提供竹師教育學院新教育大樓空間借用服務，讓您輕鬆管理空間預約申請。
                   </p>
-                  <p className="text-xs pt-2">
-                    系統版本：<span className="font-mono">Ver 1.0.0</span>
-                  </p>
                 </div>
               </div>
             </div>
