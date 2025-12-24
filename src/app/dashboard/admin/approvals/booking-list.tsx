@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { ActionButtons } from "./action-buttons"
 import { useState, useEffect } from "react"
 
-type Booking = {
+export type Booking = {
   id: string
   start_time: string
   end_time: string

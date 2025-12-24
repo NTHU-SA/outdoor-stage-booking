@@ -41,7 +41,6 @@ import type { SemesterSetting } from "@/utils/semester"
 import { 
   isDateWithin4Months, 
   isDateInLockedPeriod, 
-  getMaxBookableDate,
   getCurrentSemester,
   getNextSemester,
   isSameDay
@@ -248,7 +247,6 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   // Get current and next semester for display
   const currentSemester = getCurrentSemester(semesters)
   const nextSemester = getNextSemester(semesters, currentSemester)
-  const maxBookableDate = getMaxBookableDate()
   const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
 
   // Get selected room's type to determine if semester lock applies

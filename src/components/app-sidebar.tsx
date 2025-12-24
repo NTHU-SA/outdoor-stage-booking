@@ -31,7 +31,12 @@ const items = [
     highlight: true,
   },
   {
-    title: "預約空間",
+    title: "借用空間",
+    url: "/dashboard/spaces",
+    icon: Home,
+  },
+  {
+    title: "預約空間(舊版)",
     url: "/dashboard/book",
     icon: PlusCircle,
   },
@@ -39,11 +44,6 @@ const items = [
     title: "我的預約",
     url: "/dashboard/my-bookings",
     icon: Calendar,
-  },
-  {
-    title: "空間一覽",
-    url: "/dashboard/spaces",
-    icon: Home,
   },
 ]
 

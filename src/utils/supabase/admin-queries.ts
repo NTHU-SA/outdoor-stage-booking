@@ -53,7 +53,6 @@ export async function getAdminBookings(
 
   // Search filter (by user name or room name/code)
   if (filters?.search) {
-    const searchTerm = filters.search.toLowerCase()
     // Note: Supabase doesn't support full-text search across relations easily
     // We'll filter in memory after fetching, or use a more complex query
     // For now, we'll fetch and filter in memory for simplicity

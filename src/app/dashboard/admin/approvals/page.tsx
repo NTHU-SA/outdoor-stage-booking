@@ -1,7 +1,7 @@
 import { getAdminBookings } from "@/utils/supabase/admin-queries"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ApprovalToolbar } from "./approval-toolbar"
-import { BookingList } from "./booking-list"
+import { BookingList, type Booking as BookingListItem } from "./booking-list"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
@@ -50,7 +50,7 @@ export default async function AdminApprovalsPage({
           <Suspense fallback={<div className="h-10" />}>
             <ApprovalToolbar />
           </Suspense>
-          <BookingList initialBookings={bookings as any} />
+          <BookingList initialBookings={bookings as unknown as BookingListItem[]} />
         </CardContent>
       </Card>
     </div>

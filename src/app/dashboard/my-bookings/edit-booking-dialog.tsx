@@ -50,7 +50,6 @@ import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
 import { 
   isDateWithin4Months, 
   isDateInLockedPeriod, 
-  getMaxBookableDate,
   getCurrentSemester,
   getNextSemester,
   isSameDay
@@ -287,7 +286,6 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   // Get current and next semester for display
   const currentSemester = getCurrentSemester(semesters)
   const nextSemester = getNextSemester(semesters, currentSemester)
-  const maxBookableDate = getMaxBookableDate()
   const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
 
   // Get selected room's type to determine if semester lock applies

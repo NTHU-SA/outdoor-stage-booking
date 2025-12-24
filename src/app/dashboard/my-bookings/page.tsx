@@ -3,6 +3,7 @@ import { getSemesterSettings } from "@/app/actions/admin-settings"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
+import { toTaipeiTime } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -81,18 +82,18 @@ export default async function MyBookingsPage() {
                     <TableCell>{booking.room.floor}</TableCell>
                     <TableCell>{booking.room.capacity ? `${booking.room.capacity}人` : '-'}</TableCell>
                     <TableCell>
-                      {format(new Date(booking.start_time), "PPP", { locale: zhTW })}
+                      {format(toTaipeiTime(booking.start_time), "PPP", { locale: zhTW })}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(booking.start_time), "HH:mm")} -{" "}
-                      {format(new Date(booking.end_time), "HH:mm")}
+                      {format(toTaipeiTime(booking.start_time), "HH:mm")} -{" "}
+                      {format(toTaipeiTime(booking.end_time), "HH:mm")}
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate" title={booking.purpose}>
                       {booking.purpose}
                     </TableCell>
                     <TableCell>{getStatusBadge(booking.status)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {format(new Date(booking.created_at), "yyyy/MM/dd HH:mm")}
+                      {format(toTaipeiTime(booking.created_at), "yyyy/MM/dd HH:mm")}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
