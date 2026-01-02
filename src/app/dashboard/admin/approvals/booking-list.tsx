@@ -16,6 +16,7 @@ import { useState, useEffect } from "react"
 import { toTaipeiTime } from "@/lib/utils"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { BookingDetailDialog } from "./booking-detail-dialog"
 
 export type Booking = {
   id: string
@@ -47,6 +48,7 @@ type SortOrder = 'asc' | 'desc' | null
 
 export function BookingList({ initialBookings, showHistory }: BookingListProps) {
   const [bookings, setBookings] = useState(initialBookings)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   
   // Sorting state
   const [sortField, setSortField] = useState<SortField>(null)
@@ -59,6 +61,18 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
   const handleActionSuccess = (id: string, action: 'approve' | 'reject' | 'delete') => {
     if (action === 'delete') {
       setBookings(prev => prev.filter(b => b.id !== id))
+    } else {
+        // Update status for approve/reject without removing unless filtered out by page reload
+        // Since the page might not reload immediately, we can optimistically update
+        setBookings(prev => prev.map(b => {
+            if (b.id === id) {
+                return { 
+                    ...b, 
+                    status: action === 'approve' ? 'approved' : 'rejected' 
+                }
+            }
+            return b
+        }))
     }
   }
 
@@ -204,7 +218,11 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
             </TableRow>
           ) : (
             sortedBookings.map((booking) => (
-              <TableRow key={booking.id}>
+              <TableRow 
+                key={booking.id} 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setSelectedBooking(booking)}
+              >
                 <TableCell>
                   <div className="font-medium">{booking.user.full_name}</div>
                   <div className="text-xs text-muted-foreground">{booking.user.student_id}</div>
@@ -234,17 +252,26 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                   {getStatusBadge(booking.status)}
                 </TableCell>
                 <TableCell className="text-right w-[140px] pl-2">
-                  <ActionButtons 
-                    bookingId={booking.id} 
-                    status={booking.status}
-                    onSuccess={(action) => handleActionSuccess(booking.id, action)}
-                  />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ActionButtons 
+                        bookingId={booking.id} 
+                        status={booking.status}
+                        onSuccess={(action) => handleActionSuccess(booking.id, action)}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
+
+      <BookingDetailDialog 
+        booking={selectedBooking} 
+        open={!!selectedBooking} 
+        onOpenChange={(open) => !open && setSelectedBooking(null)}
+        onActionSuccess={handleActionSuccess}
+      />
     </div>
   )
 }
