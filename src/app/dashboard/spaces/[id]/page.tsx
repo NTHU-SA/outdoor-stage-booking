@@ -36,6 +36,11 @@ export default async function SpaceDetailPage({ params }: { params: Promise<{ id
     }
   }
 
+  // Redirect if room is inactive and user is not admin
+  if (room.is_active === false && !isAdmin) {
+    notFound()
+  }
+
   return (
     <SpaceBookingClient 
       room={room} 

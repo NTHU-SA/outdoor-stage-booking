@@ -57,12 +57,16 @@ export async function POST(request: Request) {
     // Fetch room info first (need room_type for semester lock check)
     const { data: room } = await supabase
       .from('rooms')
-      .select('unavailable_periods, room_type')
+      .select('unavailable_periods, room_type, is_active')
       .eq('id', body.roomId)
       .single()
       
     if (!room) {
       return NextResponse.json({ error: '空間不存在' }, { status: 404 })
+    }
+
+    if (room.is_active === false && !isAdmin) {
+      return NextResponse.json({ error: '此空間已停用' }, { status: 400 })
     }
 
     const isMeetingRoom = room.room_type === "Meeting"

@@ -18,17 +18,16 @@ export type Room = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function getRooms(_includeInactive = false): Promise<Room[]> {
+export async function getRooms(includeInactive = false): Promise<Room[]> {
   const supabase = await createClient()
-  const query = supabase
+  let query = supabase
     .from('rooms')
     .select('*')
     .order('name')
   
-  // Removed is_active check as the column doesn't exist in current schema
-  // if (!includeInactive) {
-  //   query = query.eq('is_active', true)
-  // }
+  if (!includeInactive) {
+    query = query.eq('is_active', true)
+  }
   
   const { data, error } = await query
   
