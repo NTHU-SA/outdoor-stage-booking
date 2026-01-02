@@ -84,6 +84,7 @@ export type MaintenanceRecord = {
   status: 'pending' | 'processing' | 'completed' | 'rejected'
   admin_notes: string | null
   image_url: string | null
+  is_hidden: boolean
 }
 
 export async function getMaintenanceRecords(): Promise<MaintenanceRecord[]> {

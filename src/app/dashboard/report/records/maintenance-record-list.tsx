@@ -48,6 +48,10 @@ export function MaintenanceRecordList({ initialRecords }: MaintenanceRecordListP
   }
 
   const filteredRecords = initialRecords.filter(record => {
+    // Only show visible records (unless user is admin, but this list is for public)
+    // The query already handles is_hidden for public, but let's be safe
+    if (record.is_hidden) return false
+
     const searchContent = `${record.location} ${record.applicant_name} ${record.description}`.toLowerCase()
     return searchContent.includes(searchTerm.toLowerCase())
   })

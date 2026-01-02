@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -24,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Download, ExternalLink, User, Phone, Mail, MapPin, Calendar, FileText } from "lucide-react"
+import { Loader2, Download, ExternalLink, User, Phone, Mail, MapPin, Calendar, FileText, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 
 type ReportDetailDialogProps = {
@@ -63,9 +64,10 @@ export function ReportDetailDialog({
   const [isUpdating, setIsUpdating] = useState(false)
   const [newStatus, setNewStatus] = useState<string>(request.status)
   const [adminNotes, setAdminNotes] = useState<string>(request.admin_notes || "")
+  const [isHidden, setIsHidden] = useState<boolean>(request.is_hidden || false)
 
   const handleUpdateStatus = async () => {
-    if (newStatus === request.status && adminNotes === (request.admin_notes || "")) {
+    if (newStatus === request.status && adminNotes === (request.admin_notes || "") && isHidden === request.is_hidden) {
       toast.info("沒有變更")
       return
     }
@@ -75,7 +77,8 @@ export function ReportDetailDialog({
       await updateMaintenanceStatus(
         request.id, 
         newStatus as 'pending' | 'processing' | 'completed' | 'rejected',
-        adminNotes
+        adminNotes,
+        isHidden
       )
       toast.success("狀態已更新")
       onStatusUpdated()
@@ -100,6 +103,11 @@ export function ReportDetailDialog({
             <Badge className={statusColors[request.status]} variant="secondary">
               {statusLabels[request.status]}
             </Badge>
+            {request.is_hidden && (
+                <Badge variant="outline" className="text-muted-foreground border-dashed">
+                    已隱藏
+                </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
             提交於 {format(new Date(request.created_at), "yyyy/MM/dd HH:mm", { locale: zhTW })}
@@ -208,7 +216,7 @@ export function ReportDetailDialog({
 
           {/* Admin Actions */}
           <div className="border-t pt-4 space-y-4">
-            <h4 className="font-medium">處理狀態</h4>
+            <h4 className="font-medium">處理狀態與設定</h4>
             
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -224,6 +232,17 @@ export function ReportDetailDialog({
                     <SelectItem value="rejected">已駁回</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="block">公開顯示設定</Label>
+                <div className="flex items-center justify-between border rounded-md p-2 h-10">
+                    <div className="flex items-center gap-2">
+                        {isHidden ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-primary" />}
+                        <span className="text-sm">{isHidden ? "已隱藏 (僅管理員可見)" : "公開顯示"}</span>
+                    </div>
+                    <Switch checked={isHidden} onCheckedChange={setIsHidden} />
+                </div>
               </div>
             </div>
 

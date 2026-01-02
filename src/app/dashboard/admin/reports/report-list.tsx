@@ -150,19 +150,22 @@ export function ReportList({ initialRequests }: ReportListProps) {
               <TableHead>地點</TableHead>
               <TableHead>問題描述</TableHead>
               <TableHead>提交時間</TableHead>
-              <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {requests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   目前沒有回報記錄
                 </TableCell>
               </TableRow>
             ) : (
               requests.map((request) => (
-                <TableRow key={request.id}>
+                <TableRow 
+                  key={request.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => setSelectedRequest(request)}
+                >
                   <TableCell>
                     <Badge className={statusColors[request.status]} variant="secondary">
                       {statusLabels[request.status]}
@@ -176,16 +179,6 @@ export function ReportList({ initialRequests }: ReportListProps) {
                   </TableCell>
                   <TableCell>
                     {format(new Date(request.created_at), "MM/dd HH:mm", { locale: zhTW })}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setSelectedRequest(request)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      查看
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))

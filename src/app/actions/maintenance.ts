@@ -19,6 +19,7 @@ export type MaintenanceRequest = {
   admin_notes: string | null
   created_at: string
   updated_at: string
+  is_hidden: boolean
 }
 
 export type CreateMaintenanceRequestInput = {
@@ -170,7 +171,8 @@ export async function getUserMaintenanceRequests(): Promise<MaintenanceRequest[]
 export async function updateMaintenanceStatus(
   id: string, 
   status: 'pending' | 'processing' | 'completed' | 'rejected',
-  adminNotes?: string
+  adminNotes?: string,
+  isHidden?: boolean
 ) {
   const supabase = await createClient()
   
@@ -191,9 +193,12 @@ export async function updateMaintenanceStatus(
     throw new Error("權限不足")
   }
 
-  const updateData: { status: string; admin_notes?: string } = { status }
+  const updateData: { status: string; admin_notes?: string; is_hidden?: boolean } = { status }
   if (adminNotes !== undefined) {
     updateData.admin_notes = adminNotes
+  }
+  if (isHidden !== undefined) {
+    updateData.is_hidden = isHidden
   }
 
   const { error } = await supabase
@@ -207,6 +212,7 @@ export async function updateMaintenanceStatus(
   }
 
   revalidatePath('/dashboard/admin/reports')
+  revalidatePath('/dashboard/report/records')
 }
 
 // Get single maintenance request by ID
