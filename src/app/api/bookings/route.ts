@@ -100,6 +100,16 @@ export async function POST(request: Request) {
       if (!isMeetingRoom && isDateInLockedPeriod(startTime, semesters, false)) {
         return NextResponse.json({ error: '下學期課表尚未確認，暫不開放預約' }, { status: 400 })
       }
+
+      // Check lunch break lock (12:00 - 13:00)
+      const startMins = startTime.getHours() * 60 + startTime.getMinutes()
+      const endMins = endTime.getHours() * 60 + endTime.getMinutes()
+      const lunchStart = 12 * 60
+      const lunchEnd = 13 * 60
+
+      if (Math.max(startMins, lunchStart) < Math.min(endMins, lunchEnd)) {
+        return NextResponse.json({ error: '中午 12:00 - 13:00 不開放借用' }, { status: 400 })
+      }
     }
 
     // 4. Check unavailable periods (including lunch lock if configured)
