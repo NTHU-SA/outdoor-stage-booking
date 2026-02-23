@@ -11,7 +11,7 @@ export async function checkUserExists(email: string): Promise<boolean> {
     const supabaseAdmin = createServiceClient()
     
     // 使用 admin API 查詢使用者
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers()
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
     
     if (error) {
       console.error("Error checking user existence:", error)

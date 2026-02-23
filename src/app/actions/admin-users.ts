@@ -43,7 +43,7 @@ export async function getUsers(): Promise<AdminUser[]> {
   const supabaseAdmin = createServiceClient()
 
   // 1. Get all auth users
-  const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
+  const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
   if (usersError) throw usersError
 
   // 1.1 Filter only users who have verified their email

@@ -11,6 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -31,6 +41,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
+import { RoomApproverEditor, ApproverEntry, UserOption } from "./room-approver-editor"
+import { getRoomApprovers, setRoomApprovers, getUsersForApproverSelection } from "@/app/actions/admin-approvers"
+import { Separator } from "@/components/ui/separator"
 
 type RoomFormDialogProps = {
   mode: "create" | "edit"
@@ -70,7 +83,16 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       : []
   )
   const [allowNoon, setAllowNoon] = useState(room?.allow_noon || false)
+
+  // Approver State
+  const [approvers, setApprovers] = useState<ApproverEntry[]>([])
+  const [userOptions, setUserOptions] = useState<UserOption[]>([])
+  const [isLoadingApprovers, setIsLoadingApprovers] = useState(false)
   
+  // Unsaved changes confirmation
+  const [initialState, setInitialState] = useState<string>("")
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -79,6 +101,34 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
 
   // Meeting rooms don't need unavailable periods (no semester schedule dependency)
   const isMeetingRoom = roomType === "Meeting"
+
+  // Load approver data when dialog opens
+  useEffect(() => {
+    if (open) {
+      const loadApproverData = async () => {
+        setIsLoadingApprovers(true)
+        try {
+          const users = await getUsersForApproverSelection()
+          setUserOptions(users)
+          if (room) {
+            const existingApprovers = await getRoomApprovers(room.id)
+            setApprovers(existingApprovers.map(a => ({
+              user_id: a.user_id,
+              step_order: a.step_order,
+              label: a.label || '',
+            })))
+          } else {
+            setApprovers([])
+          }
+        } catch (error) {
+          console.error('Error loading approver data:', error)
+        } finally {
+          setIsLoadingApprovers(false)
+        }
+      }
+      loadApproverData()
+    }
+  }, [open, room])
 
   // Reset form when dialog opens or room changes
   useEffect(() => {
@@ -124,6 +174,51 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
     }
   }, [open, room, mode, roomTypeOptions])
 
+  // Capture initial state for unsaved changes detection
+  useEffect(() => {
+    if (open && !isLoadingApprovers) {
+      setInitialState(JSON.stringify({
+        name,
+        roomCode,
+        floor,
+        capacity,
+        roomType,
+        selectedRoomType,
+        customRoomType,
+        equipment,
+        imageUrl,
+        unavailablePeriods,
+        allowNoon,
+        approvers
+      }))
+    }
+  }, [open, isLoadingApprovers]) // Only run when dialog opens or approvers finish loading
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      const currentState = JSON.stringify({
+        name,
+        roomCode,
+        floor,
+        capacity,
+        roomType,
+        selectedRoomType,
+        customRoomType,
+        equipment,
+        imageUrl,
+        unavailablePeriods,
+        allowNoon,
+        approvers
+      })
+      
+      if (currentState !== initialState) {
+        setShowConfirmDialog(true)
+        return
+      }
+    }
+    setOpen(newOpen)
+  }
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -165,9 +260,14 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
 
       if (mode === "create") {
         await createRoom(data)
+        // Note: For create mode, approvers need to be set after the room is created
+        // We'll handle this via a page reload for simplicity
         toast.success("已新增空間")
       } else if (room) {
         await updateRoom(room.id, data)
+        // Save approvers
+        const validApprovers = approvers.filter(a => a.user_id)
+        await setRoomApprovers(room.id, validApprovers)
         toast.success("已更新空間資訊")
       }
       if (typeof window !== "undefined") {
@@ -183,12 +283,19 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
       <DialogContent className={isMeetingRoom ? "sm:max-w-[500px] max-h-[90vh] overflow-y-auto" : "sm:max-w-[1000px] max-h-[90vh] overflow-y-auto"}>
         <form onSubmit={handleSubmit}>
+          <div className="absolute right-12 top-4 z-10 flex items-center gap-2">
+            <Button type="submit" disabled={isLoading || isUploading} size="sm" className="h-8">
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              儲存變更
+            </Button>
+          </div>
           <DialogHeader>
             <DialogTitle>{mode === "create" ? "新增空間" : "編輯空間"}</DialogTitle>
             <DialogDescription>
@@ -358,12 +465,17 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
                <Label htmlFor="allow-noon">開放中午借用 (12:00 - 13:00)</Label>
             </div>
 
-            <div className="pt-2">
-              <Button type="submit" disabled={isLoading || isUploading} className="w-full">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                儲存變更
-              </Button>
-            </div>
+            {mode === "edit" && (
+              <>
+                <Separator />
+                <RoomApproverEditor
+                  approvers={approvers}
+                  onChange={setApprovers}
+                  userOptions={userOptions}
+                  isLoading={isLoadingApprovers}
+                />
+              </>
+            )}
             </div>
 
             {/* Unavailable periods section - hidden for Meeting rooms */}
@@ -382,5 +494,28 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>確定要離開嗎？</AlertDialogTitle>
+          <AlertDialogDescription>
+            您有尚未儲存的變更，離開後這些變更將會遺失。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>取消</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              setShowConfirmDialog(false)
+              setOpen(false)
+            }}
+          >
+            確定離開
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

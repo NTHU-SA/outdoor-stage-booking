@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { createServiceClient } from '@/utils/supabase/service'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -44,6 +45,19 @@ export async function POST(
     return NextResponse.json({ error: '該時段已有核准的預約，無法核准此申請' }, { status: 409 })
   }
 
+  const supabaseAdmin = createServiceClient()
+
+  // Skip any pending approval steps (admin force approve)
+  await supabaseAdmin
+    .from('booking_approval_steps')
+    .update({
+      status: 'skipped',
+      decided_at: new Date().toISOString(),
+      comment: '管理員直接核准',
+    })
+    .eq('booking_id', bookingId)
+    .eq('status', 'pending')
+
   // Approve
   const { error } = await supabase
     .from('bookings')
@@ -51,8 +65,6 @@ export async function POST(
     .eq('id', bookingId)
 
   if (error) return NextResponse.json({ error: 'Update failed' }, { status: 500 })
-  
-  // TODO: Insert audit log
 
   return NextResponse.json({ success: true })
 }

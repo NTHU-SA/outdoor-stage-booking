@@ -1,5 +1,19 @@
 import { createClient } from '@/utils/supabase/server'
+import { createServiceClient } from '@/utils/supabase/service'
 import type { Booking } from './queries'
+
+export type ApprovalStepInfo = {
+  id: string
+  step_order: number
+  approver_id: string
+  label: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'skipped'
+  decided_at: string | null
+  comment: string | null
+  approver?: {
+    full_name: string | null
+  }
+}
 
 export type AdminBooking = Booking & {
   user: {
@@ -10,6 +24,9 @@ export type AdminBooking = Booking & {
       name: string
     } | null
   }
+  approval_steps?: ApprovalStepInfo[]
+  has_multi_level_approval?: boolean
+  current_approval_label?: string | null
 }
 
 export async function getAdminBookings(
@@ -24,6 +41,7 @@ export async function getAdminBookings(
     .from('bookings')
     .select(`
       id,
+      room_id,
       start_time,
       end_time,
       status,
@@ -69,6 +87,45 @@ export async function getAdminBookings(
   }
 
   let bookings = (data as unknown as AdminBooking[]) || []
+
+  // Enrich bookings with approval steps data
+  if (bookings.length > 0) {
+    const bookingIds = bookings.map(b => b.id)
+    const supabaseAdmin = createServiceClient()
+    const { data: allSteps } = await supabaseAdmin
+      .from('booking_approval_steps')
+      .select(`
+        id, booking_id, step_order, approver_id, label, status, decided_at, comment,
+        approver:profiles!booking_approval_steps_approver_id_fkey (full_name)
+      `)
+      .in('booking_id', bookingIds)
+      .order('step_order')
+
+    if (allSteps && allSteps.length > 0) {
+      const stepsMap = new Map<string, ApprovalStepInfo[]>()
+      for (const step of allSteps) {
+        const bookingId = (step as unknown as { booking_id: string }).booking_id
+        if (!stepsMap.has(bookingId)) stepsMap.set(bookingId, [])
+        stepsMap.get(bookingId)!.push(step as unknown as ApprovalStepInfo)
+      }
+
+      bookings = bookings.map(b => {
+        const steps = stepsMap.get(b.id)
+        if (steps && steps.length > 0) {
+          // Find current pending step
+          const currentStep = steps.find(s => s.status === 'pending')
+          return {
+            ...b,
+            approval_steps: steps,
+            has_multi_level_approval: true,
+            current_approval_label: currentStep?.label || 
+              (steps.every(s => s.status === 'approved' || s.status === 'skipped') ? '全部核准' : null),
+          }
+        }
+        return { ...b, has_multi_level_approval: false }
+      })
+    }
+  }
 
   // Apply search filter in memory if needed
   if (filters?.search) {
