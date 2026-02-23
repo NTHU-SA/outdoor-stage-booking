@@ -1,8 +1,18 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Separator } from "@/components/ui/separator"
+import { usePathname } from "next/navigation"
 
 export function AppFooter() {
+  const pathname = usePathname()
+
+  // Hide footer on dashboard pages — sidebar provides navigation there
+  if (pathname?.startsWith("/dashboard")) {
+    return null
+  }
+
   return (
     <footer className="border-t bg-muted/50 mt-auto">
       <div className="w-full max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">

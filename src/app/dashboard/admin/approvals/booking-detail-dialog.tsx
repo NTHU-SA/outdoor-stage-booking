@@ -121,7 +121,7 @@ export function BookingDetailDialog({
                 </div>
                 <div>
                    <Label className="text-muted-foreground text-xs">申請事由</Label>
-                   <div className="mt-1 p-2 bg-muted/50 rounded-md text-sm whitespace-pre-wrap break-words max-h-[150px] overflow-y-auto">
+                   <div className="mt-1 p-2 bg-muted/50 rounded-md text-sm whitespace-pre-wrap wrap-break-word max-h-[150px] overflow-y-auto">
                       {booking.purpose}
                    </div>
                 </div>

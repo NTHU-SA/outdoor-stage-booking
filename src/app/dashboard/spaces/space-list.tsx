@@ -73,27 +73,23 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
   return (
     <div className="space-y-6">
       {/* Top Filters */}
-      <div className="bg-background/95 p-4 rounded-lg border shadow-sm space-y-4">
-         <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
-            <div className="space-y-1 flex-1 min-w-[200px]">
-                <div className="font-medium text-sm text-muted-foreground">關鍵字搜尋</div>
-                <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="搜尋空間名稱..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8"
-                    />
-                </div>
+      <div className="bg-background/95 p-4 rounded-lg border shadow-sm">
+         <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="搜尋空間名稱、代號..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 flex-none">
-                <div className="space-y-1 w-full sm:w-[140px]">
-                    <div className="font-medium text-sm text-muted-foreground">樓層</div>
+            <div className="flex flex-row gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+                <div className="min-w-[120px]">
                     <Select value={selectedFloor} onValueChange={setSelectedFloor}>
                         <SelectTrigger>
-                            <SelectValue placeholder="選擇樓層" />
+                            <SelectValue placeholder="樓層" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">全部樓層</SelectItem>
@@ -104,11 +100,10 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
                     </Select>
                 </div>
 
-                <div className="space-y-1 w-full sm:w-[140px]">
-                    <div className="font-medium text-sm text-muted-foreground">空間類型</div>
+                <div className="min-w-[120px]">
                     <Select value={selectedType} onValueChange={setSelectedType}>
                         <SelectTrigger>
-                            <SelectValue placeholder="選擇類型" />
+                            <SelectValue placeholder="類型" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">全部類型</SelectItem>
@@ -119,14 +114,13 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
                     </Select>
                 </div>
 
-                <div className="space-y-1 w-full sm:w-[140px]">
-                    <div className="font-medium text-sm text-muted-foreground">容納人數</div>
+                <div className="min-w-[120px]">
                      <Select value={selectedCapacity} onValueChange={setSelectedCapacity}>
                         <SelectTrigger>
-                            <SelectValue placeholder="選擇人數" />
+                            <SelectValue placeholder="容納人數" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">不限</SelectItem>
+                            <SelectItem value="all">容納人數不限</SelectItem>
                             <SelectItem value="small">30人以下</SelectItem>
                             <SelectItem value="medium">31-50人</SelectItem>
                             <SelectItem value="large">50人以上</SelectItem>
@@ -156,22 +150,24 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
                             </div>
                         )}
                     </div>
-                    <CardContent className="p-4 pt-0 pb-1 flex-1">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                            <div>
-                                <h3 className="font-bold truncate group-hover:text-primary transition-colors" title={room.name}>{room.name}</h3>
-                                <p className="text-xs text-muted-foreground">{room.room_code}</p>
+                    <CardContent className="px-4 py-1 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                            {/* Left: Name and Code */}
+                            <div className="min-w-0 flex-1">
+                                <h3 className="font-bold truncate group-hover:text-primary transition-colors text-base" title={room.name}>{room.name}</h3>
+                                <p className="text-xs text-muted-foreground truncate">{room.room_code}</p>
                             </div>
-                        </div>
-                        
-                        <div className="space-y-2 text-sm text-muted-foreground mt-3">
-                            <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4" />
-                                <span>{room.capacity || 0} 人</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Layers className="h-4 w-4" />
-                                <span>{room.floor || '未標示'}</span>
+
+                            {/* Right: Capacity and Floor */}
+                            <div className="flex flex-col items-end gap-1 flex-none">
+                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <Users className="h-3.5 w-3.5" />
+                                    <span>{room.capacity || 0} 人</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Layers className="h-3.5 w-3.5" />
+                                    <span>{room.floor || '未標示'}</span>
+                                </div>
                             </div>
                         </div>
                     </CardContent>

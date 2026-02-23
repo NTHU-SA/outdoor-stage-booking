@@ -140,8 +140,8 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
                     {getSortIcon('room')}
                 </Button>
             </TableHead>
-            <TableHead className="text-left w-[80px]">樓層</TableHead>
-            <TableHead className="text-left w-[80px]">人限</TableHead>
+            <TableHead className="text-left w-20">樓層</TableHead>
+            <TableHead className="text-left w-20">人限</TableHead>
             <TableHead className="text-left w-[100px]">日期</TableHead>
             <TableHead className="text-left w-[120px]">
                 <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>

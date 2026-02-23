@@ -13,6 +13,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { useUser } from "@/hooks/use-user"
 import { createClient } from "@/utils/supabase/client"
@@ -106,6 +107,12 @@ export function AppSidebar() {
   const supabase = createClient()
   const router = useRouter()
   const pathname = usePathname()
+  const { setOpenMobile } = useSidebar()
+
+  // Close mobile sidebar sheet when navigating
+  const handleMobileNavClick = () => {
+    setOpenMobile(false)
+  }
 
   // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
   useEffect(() => {
@@ -181,7 +188,7 @@ export function AppSidebar() {
                       isActive={pathname === item.url}
                       className={item.highlight ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50" : ""}
                     >
-                      <a href={item.url}>
+                      <a href={item.url} onClick={handleMobileNavClick}>
                         <item.icon className={item.highlight ? "text-red-600 dark:text-red-400" : ""} />
                         <span>{item.title}</span>
                       </a>
@@ -202,7 +209,7 @@ export function AppSidebar() {
                     asChild 
                     isActive={pathname === item.url}
                   >
-                    <a href={item.url}>
+                    <a href={item.url} onClick={handleMobileNavClick}>
                       <item.icon />
                       <span>{item.title}</span>
                     </a>
@@ -221,7 +228,7 @@ export function AppSidebar() {
                 {adminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={pathname === item.url}>
-                      <a href={item.url}>
+                      <a href={item.url} onClick={handleMobileNavClick}>
                         <item.icon />
                         <span>{item.title}</span>
                       </a>
@@ -241,7 +248,7 @@ export function AppSidebar() {
                 {approverItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={pathname === item.url}>
-                      <a href={item.url}>
+                      <a href={item.url} onClick={handleMobileNavClick}>
                         <item.icon />
                         <span>{item.title}</span>
                       </a>
