@@ -57,6 +57,7 @@ export type Booking = {
   room: {
     id?: string
     name: string
+    room_code?: string | null
   }
   start_time: string
   end_time: string

@@ -45,7 +45,8 @@ export async function getAdminBookings(
       purpose,
       created_at,
       room:rooms (
-        name
+        name,
+        room_code
       ),
       user:profiles (
         full_name,
