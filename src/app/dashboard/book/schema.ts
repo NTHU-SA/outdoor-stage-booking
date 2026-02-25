@@ -4,8 +4,11 @@ export const bookingFormSchema = z.object({
   roomId: z.string({
     message: "請選擇空間",
   }),
-  date: z.date({
-    message: "請選擇日期",
+  startDate: z.date({
+    message: "請選擇開始日期",
+  }),
+  endDate: z.date({
+    message: "請選擇結束日期",
   }),
   startTime: z.string({
     message: "請選擇開始時間",
@@ -17,9 +20,27 @@ export const bookingFormSchema = z.object({
     message: "事由至少需要 5 個字",
   }),
 }).refine((data) => {
-  return data.endTime > data.startTime
+  // endDate must be >= startDate
+  const start = new Date(data.startDate)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(data.endDate)
+  end.setHours(0, 0, 0, 0)
+  return end >= start
 }, {
-  message: "結束時間必須晚於開始時間",
+  message: "結束日期不能早於開始日期",
+  path: ["endDate"],
+}).refine((data) => {
+  const startDay = new Date(data.startDate)
+  startDay.setHours(0, 0, 0, 0)
+  const endDay = new Date(data.endDate)
+  endDay.setHours(0, 0, 0, 0)
+  // If same day, end time must be after start time
+  if (startDay.getTime() === endDay.getTime()) {
+    return data.endTime > data.startTime
+  }
+  return true
+}, {
+  message: "同日借用時，結束時間必須晚於開始時間",
   path: ["endTime"],
 })
 

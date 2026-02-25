@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
-import { Mail, CheckCircle2, Clock, ArrowRight } from "lucide-react"
+import { Mail, CheckCircle2, ArrowRight } from "lucide-react"
 import Link from 'next/link'
 
 function SignupSuccessContent() {
@@ -46,7 +46,7 @@ function SignupSuccessContent() {
                 註冊成功！
               </h1>
               <p className="text-lg sm:text-xl opacity-90">
-                竹師教育學院空間借用系統
+                國立清華大學學生會野台借用系統
               </p>
             </div>
           </div>
@@ -115,15 +115,15 @@ function SignupSuccessContent() {
               </div>
             </div>
 
-            {/* Waiting Message */}
-            <div className="flex items-start gap-4 p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl max-w-2xl mx-auto">
-              <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            {/* Info Message */}
+            <div className="flex items-start gap-4 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl max-w-2xl mx-auto">
+              <CheckCircle2 className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
-                  等待管理員審核
+                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                  驗證後即可使用
                 </h3>
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  驗證完成後，您的帳號將進入審核流程。管理員審核通過後，您即可開始使用系統進行空間借用。
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  完成信箱驗證後，即可登入系統開始使用野台借用功能，無需等待審核。
                 </p>
               </div>
             </div>

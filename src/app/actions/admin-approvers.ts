@@ -350,11 +350,10 @@ export async function getApproverBookings(): Promise<{
     status: string
     purpose: string | null
     created_at: string
-    room: { name: string; room_code: string | null }
+    room: { name: string }
     user: {
       full_name: string
       student_id: string | null
-      department: { name: string } | null
     }
   }
   step: ApprovalStep
@@ -379,10 +378,9 @@ export async function getApproverBookings(): Promise<{
     .from('bookings')
     .select(`
       id, start_time, end_time, status, purpose, created_at,
-      room:rooms (name, room_code),
+      room:rooms (name),
       user:profiles!bookings_user_id_fkey (
-        full_name, student_id,
-        department:departments (name)
+        full_name, student_id
       )
     `)
     .in('id', bookingIds)
@@ -405,8 +403,8 @@ export async function getApproverBookings(): Promise<{
     booking: {
       id: string; start_time: string; end_time: string; status: string;
       purpose: string | null; created_at: string;
-      room: { name: string; room_code: string | null };
-      user: { full_name: string; student_id: string | null; department: { name: string } | null }
+      room: { name: string };
+      user: { full_name: string; student_id: string | null }
     }
     step: ApprovalStep
     allSteps: ApprovalStep[]

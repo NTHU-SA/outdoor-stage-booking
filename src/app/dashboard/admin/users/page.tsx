@@ -44,7 +44,7 @@ import { Input } from "@/components/ui/input"
 const USER_TYPE_LABELS: Record<string, string> = {
   teacher: "教師",
   staff: "職員",
-  assistant: "助教",
+  external: "校外人士",
   student: "學生",
 }
 
@@ -75,15 +75,13 @@ export default function AdminUsersPage() {
     if (!keyword) return true
 
     const email = user.email?.toLowerCase() ?? ""
-    const fullName = user.full_name?.toLowerCase() ?? ""
+    const full_name = user.full_name?.toLowerCase() ?? ""
     const phone = user.phone?.toLowerCase() ?? ""
-    const department = user.department_name?.toLowerCase() ?? ""
 
     return (
       email.includes(keyword) ||
-      fullName.includes(keyword) ||
-      phone.includes(keyword) ||
-      department.includes(keyword)
+      full_name.includes(keyword) ||
+      phone.includes(keyword)
     )
   })
 
@@ -149,7 +147,7 @@ export default function AdminUsersPage() {
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="搜尋姓名、Email、電話或所屬單位..."
+              placeholder="搜尋姓名、Email、電話或身份別..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -163,7 +161,6 @@ export default function AdminUsersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>姓名</TableHead>
-              <TableHead>所屬單位</TableHead>
               <TableHead>職稱</TableHead>
               <TableHead>註冊時間</TableHead>
               <TableHead>狀態</TableHead>
@@ -184,21 +181,11 @@ export default function AdminUsersPage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {user.department_name || (
-                    <span className="text-muted-foreground">未設定</span>
-                  )}
-                </TableCell>
-                <TableCell>
                   {user.user_type ? (
                     <div className="flex flex-col gap-1 items-start">
                       <Badge variant="outline">
                         {USER_TYPE_LABELS[user.user_type] ?? user.user_type}
                       </Badge>
-                      {user.user_type === 'student' && user.supervisor_name && (
-                        <span className="text-xs text-muted-foreground">
-                          {user.supervisor_name}老師
-                        </span>
-                      )}
                     </div>
                   ) : (
                     <span className="text-muted-foreground">未設定</span>
@@ -345,27 +332,12 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                  <div className="col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Building className="h-4 w-4" />
-                    所屬單位
+                    身份別
                   </div>
-                  <div className="col-span-4 sm:col-span-3">
-                    {selectedUser.department_name || "未設定"}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
-                    <UserIcon className="h-4 w-4" />
-                    職稱
-                  </div>
-                  <div className="col-span-4 sm:col-span-3">
-                    <div className="flex flex-col gap-1">
-                      <span>{selectedUser.user_type ? USER_TYPE_LABELS[selectedUser.user_type] ?? selectedUser.user_type : "未設定"}</span>
-                      {selectedUser.user_type === 'student' && selectedUser.supervisor_name && (
-                        <span className="text-sm text-muted-foreground">上司老師：{selectedUser.supervisor_name}</span>
-                      )}
-                    </div>
+                  <div className="col-span-4 sm:col-span-3 flex flex-col gap-1">
+                    <span>{selectedUser.user_type ? USER_TYPE_LABELS[selectedUser.user_type] ?? selectedUser.user_type : "未設定"}</span>
                   </div>
                 </div>
 

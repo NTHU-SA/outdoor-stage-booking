@@ -25,11 +25,10 @@ export type ApproverBookingItem = {
     status: string
     purpose: string | null
     created_at: string
-    room: { name: string; room_code: string | null }
+    room: { name: string }
     user: {
       full_name: string
       student_id: string | null
-      department: { name: string } | null
     }
   }
   step: ApprovalStep
@@ -98,7 +97,6 @@ export function ApproverBookingList({ initialData, showCompleted }: ApproverBook
         <TableHeader>
           <TableRow>
             <TableHead>申請人</TableHead>
-            <TableHead>單位/系所</TableHead>
             <TableHead>空間</TableHead>
             <TableHead>時間</TableHead>
             <TableHead>事由</TableHead>
@@ -125,14 +123,11 @@ export function ApproverBookingList({ initialData, showCompleted }: ApproverBook
                   <div className="font-medium">{item.booking.user.full_name}</div>
                   <div className="text-xs text-muted-foreground">{item.booking.user.student_id}</div>
                 </TableCell>
-                <TableCell>{item.booking.user.department?.name || '-'}</TableCell>
                 <TableCell>
-                  {(() => {
-                    const fullName = item.booking.room.room_code
-                      ? `(${item.booking.room.room_code})${item.booking.room.name}`
-                      : item.booking.room.name
+                  <div className="font-medium">{(() => {
+                    const fullName = item.booking.room.name
                     return fullName.length > 12 ? `${fullName.slice(0, 12)}...` : fullName
-                  })()}
+                  })()}</div>
                 </TableCell>
                 <TableCell>
                   <div className="font-medium">

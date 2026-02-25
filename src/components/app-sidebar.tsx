@@ -166,14 +166,14 @@ export function AppSidebar() {
             <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-contain" />
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="truncate font-semibold">竹師教育學院</span>
-            <span className="truncate text-xs">空間借用系統</span>
+            <span className="truncate font-semibold">國立清華大學學生會</span>
+            <span className="truncate text-xs">野台借用系統</span>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>空間借用</SidebarGroupLabel>
+          <SidebarGroupLabel>野台借用</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items

@@ -3,11 +3,6 @@ import LoginClient from "./login-client"
 
 export default async function LoginPage() {
   const supabase = await createClient()
-  
-  const { data: departments } = await supabase
-    .from('departments')
-    .select('id, name')
-    .order('id')
 
-  return <LoginClient initialDepartments={departments || []} />
+  return <LoginClient />
 }

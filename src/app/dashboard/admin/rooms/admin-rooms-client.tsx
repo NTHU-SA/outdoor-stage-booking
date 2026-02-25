@@ -48,57 +48,16 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
   const [targetRoom, setTargetRoom] = useState<{ id: string, name: string, isActive: boolean } | null>(null)
   const [mounted, setMounted] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterFloor, setFilterFloor] = useState<string>("all")
-  const [filterRoomType, setFilterRoomType] = useState<string>("all")
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
-
-  const floorOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          initialRooms
-            .map((room) => room.floor)
-            .filter((f): f is string => !!f && f.trim().length > 0),
-        ),
-      ).sort(),
-    [initialRooms],
-  )
-
-  const roomTypeOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          initialRooms
-            .map((room) => room.room_type)
-            .filter((t): t is string => !!t && t.trim().length > 0),
-        ),
-      ).sort(),
-    [initialRooms],
-  )
 
   const filteredRooms = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
 
     return rooms.filter((room) => {
-      // 搜尋：名稱與代號
+      // 搜尋：名稱
       if (keyword) {
         const name = room.name?.toLowerCase() ?? ""
-        const code = room.room_code?.toLowerCase() ?? ""
-        if (!name.includes(keyword) && !code.includes(keyword)) {
-          return false
-        }
-      }
-
-      // 篩選：樓層
-      if (filterFloor !== "all") {
-        if ((room.floor ?? "") !== filterFloor) {
-          return false
-        }
-      }
-
-      // 篩選：類型
-      if (filterRoomType !== "all") {
-        if ((room.room_type ?? "") !== filterRoomType) {
+        if (!name.includes(keyword)) {
           return false
         }
       }
@@ -112,7 +71,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
 
       return true
     })
-  }, [rooms, searchTerm, filterFloor, filterRoomType, filterStatus])
+  }, [rooms, searchTerm, filterStatus])
 
   // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
   useEffect(() => {
@@ -157,10 +116,6 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
               <TableRow>
                 <TableHead className="w-[100px]">圖片</TableHead>
                 <TableHead>名稱</TableHead>
-                <TableHead>代號</TableHead>
-                <TableHead>類型</TableHead>
-                <TableHead>樓層</TableHead>
-                <TableHead>人數</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
@@ -170,10 +125,6 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="w-16 h-10" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                 </TableRow>
@@ -189,7 +140,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <RoomFormDialog mode="create" roomTypeOptions={roomTypeOptions}>
+          <RoomFormDialog mode="create">
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
               新增空間
@@ -198,8 +149,6 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
           <div className="text-xs text-muted-foreground">
             共 {rooms.length} 間空間
             {(searchTerm.trim() ||
-              filterFloor !== "all" ||
-              filterRoomType !== "all" ||
               filterStatus !== "all") &&
               `，目前顯示 ${filteredRooms.length} 間`}
           </div>
@@ -209,7 +158,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
           <div className="relative w-full md:w-64">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="搜尋名稱或代號..."
+              placeholder="搜尋名稱..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -232,40 +181,6 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                 <SelectItem value="inactive">已停用</SelectItem>
               </SelectContent>
             </Select>
-
-            <Select
-              value={filterFloor}
-              onValueChange={(value) => setFilterFloor(value)}
-            >
-              <SelectTrigger className="min-w-[110px]">
-                <SelectValue placeholder="樓層" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部樓層</SelectItem>
-                {floorOptions.map((floor) => (
-                  <SelectItem key={floor} value={floor}>
-                    {floor}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filterRoomType}
-              onValueChange={(value) => setFilterRoomType(value)}
-            >
-              <SelectTrigger className="min-w-[130px]">
-                <SelectValue placeholder="空間類型" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部類型</SelectItem>
-                {roomTypeOptions.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </div>
@@ -276,10 +191,6 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
             <TableRow>
               <TableHead className="w-[100px]">圖片</TableHead>
               <TableHead>名稱</TableHead>
-              <TableHead>代號</TableHead>
-              <TableHead>類型</TableHead>
-              <TableHead>樓層</TableHead>
-              <TableHead>人數</TableHead>
               <TableHead>狀態</TableHead>
               <TableHead className="text-right">操作</TableHead>
             </TableRow>
@@ -293,10 +204,6 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                    </div>
                 </TableCell>
                 <TableCell className="font-medium">{room.name}</TableCell>
-                <TableCell>{room.room_code}</TableCell>
-                <TableCell>{room.room_type}</TableCell>
-                <TableCell>{room.floor}</TableCell>
-                <TableCell>{room.capacity}</TableCell>
                 <TableCell>
                    {room.is_active ? (
                        <Badge variant="default" className="bg-green-600 hover:bg-green-700">啟用中</Badge>
@@ -309,7 +216,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                     checked={room.is_active !== false} // Handle null as true (legacy)
                     onCheckedChange={() => handleToggleStatus(room)}
                   />
-                  <RoomFormDialog mode="edit" room={room} roomTypeOptions={roomTypeOptions}>
+                  <RoomFormDialog mode="edit" room={room}>
                     <Button variant="ghost" size="icon">
                         <Pencil className="h-4 w-4" />
                     </Button>

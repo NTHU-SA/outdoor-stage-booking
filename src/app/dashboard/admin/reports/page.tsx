@@ -10,7 +10,7 @@ export default async function AdminReportsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">報修系統管理</h2>
           <p className="text-muted-foreground">
-            查看與處理報修系統及施工申請
+            查看與處理報修系統
           </p>
         </div>
       </div>

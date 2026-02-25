@@ -15,20 +15,14 @@ import { Loader2 } from "lucide-react"
 const USER_TYPE_LABELS: Record<string, string> = {
   teacher: "教師",
   staff: "職員",
-  assistant: "助教",
+  external: "校外人士",
   student: "學生",
 }
 
 type Profile = {
   full_name: string | null
   phone: string | null
-  department_id: number | null
   user_type: string | null
-}
-
-type Department = {
-  id: number
-  name: string
 }
 
 export default function ProfilePage() {
@@ -39,10 +33,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({
     full_name: "",
     phone: "",
-    department_id: null,
     user_type: "",
   })
-  const [departments, setDepartments] = useState<Department[]>([])
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -57,17 +49,11 @@ export default function ProfilePage() {
       if (!user) return
 
       setIsLoadingProfile(true)
-      const [{ data, error }, { data: deptData, error: deptError }] = await Promise.all([
-        supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, phone, department_id, user_type")
+        .select("full_name, phone, user_type")
         .eq("id", user.id)
-        .single(),
-        supabase
-          .from("departments")
-          .select("id, name")
-          .order("id"),
-      ])
+        .single()
 
       if (error) {
         // 若沒有找到資料，保持預設空值即可
@@ -79,16 +65,8 @@ export default function ProfilePage() {
         setProfile({
           full_name: data.full_name ?? "",
           phone: data.phone ?? "",
-          department_id: data.department_id ?? null,
           user_type: data.user_type ?? "",
         })
-      }
-
-      if (deptError) {
-        console.error(deptError)
-        toast.error("載入單位資料時發生錯誤")
-      } else if (deptData) {
-        setDepartments(deptData)
       }
 
       setIsLoadingProfile(false)
@@ -117,7 +95,6 @@ export default function ProfilePage() {
           id: user.id,
           full_name: profile.full_name || null,
           phone: profile.phone || null,
-          department_id: profile.department_id ?? null,
           user_type: profile.user_type || null,
         },
         { onConflict: "id" }
@@ -131,7 +108,7 @@ export default function ProfilePage() {
       return
     }
 
-    toast.success("已成功更新基本資料")
+    toast.success("基本資料更新成功")
   }
 
   if (loading || isLoadingProfile || !user) {
@@ -178,32 +155,8 @@ export default function ProfilePage() {
                 id="phone"
                 value={profile.phone ?? ""}
                 onChange={(e) => setProfile((prev) => ({ ...prev, phone: e.target.value }))}
-                placeholder="例如：0912345678"
+                placeholder="例如：您的電話"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>所屬單位（系所 / 單位）</Label>
-              <Select
-                value={profile.department_id ? String(profile.department_id) : ""}
-                onValueChange={(value) =>
-                  setProfile((prev) => ({
-                    ...prev,
-                    department_id: value ? Number(value) : null,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="請選擇您的所屬單位" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={String(dept.id)}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
@@ -218,7 +171,7 @@ export default function ProfilePage() {
                 <SelectContent>
                   <SelectItem value="teacher">{USER_TYPE_LABELS.teacher}</SelectItem>
                   <SelectItem value="staff">{USER_TYPE_LABELS.staff}</SelectItem>
-                  <SelectItem value="assistant">{USER_TYPE_LABELS.assistant}</SelectItem>
+                  <SelectItem value="external">{USER_TYPE_LABELS.external}</SelectItem>
                   <SelectItem value="student">{USER_TYPE_LABELS.student}</SelectItem>
                 </SelectContent>
               </Select>

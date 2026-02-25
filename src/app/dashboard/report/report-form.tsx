@@ -200,7 +200,7 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
             <FormItem>
               <FormLabel>所屬單位 / 系所 (Unit) *</FormLabel>
               <FormControl>
-                <Input placeholder="例：教育與學習科技學系" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -215,7 +215,7 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
               <FormItem>
                 <FormLabel>聯絡分機/手機 (Phone Number) *</FormLabel>
                 <FormControl>
-                  <Input placeholder="例：0912345678 或分機 1234" {...field} />
+                  <Input placeholder="例：您的電話" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -229,7 +229,7 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
               <FormItem>
                 <FormLabel>E-mail *</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="example@nthu.edu.tw" {...field} />
+                  <Input type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -249,7 +249,7 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
                 <FormItem>
                   <FormLabel>發生地點 (Location/Room Number) *</FormLabel>
                   <FormControl>
-                    <Input placeholder="例：教育學院 N201" {...field} />
+                    <Input placeholder="例：野台前側" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

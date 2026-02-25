@@ -15,7 +15,7 @@ export default function RulesPage() {
         <CardContent className="space-y-8">
           <div className="space-y-4">
             <p className="leading-7">
-              為有效管理及運用本院大樓空間，並兼顧各單位業務推動需求，特將相關借用原則說明如下，請各系所周知並轉知師生遵循。
+              為有效管理及運用本院野台空間，並兼顧各單位業務推動需求，特將相關借用原則說明如下，請各系所周知並轉知師生遵循。
             </p>
             <ul className="list-none space-y-2">
               <li>
@@ -25,10 +25,22 @@ export default function RulesPage() {
                 <span className="font-semibold">2. 借用原則：</span>由於會議室數量有限，學生口試請先洽借研討室使用，以利會議室供其他行政及學術需求使用。
               </li>
               <li>
-                <span className="font-semibold">3. 收費說明：</span>目前空間借用為利業務推動，暫不收取費用；惟後續將視使用狀況及實際需求，另行研議並訂定收費辦法。
+                <span className="font-semibold">3. 收費說明：</span>目前野台借用為利業務推動，暫不收取費用；惟後續將視使用狀況及實際需求，另行研議並訂定收費辦法。
               </li>
               <li>
-                <span className="font-semibold">4. 鑰匙管理：</span>借用人請至院辦公室辦理鑰匙借取與歸還手續，並依規定使用與維護空間。
+                <span className="font-semibold">4. 借用時間：</span>全天 24 小時皆可申請借用（00:00 – 24:00）。
+              </li>
+              <li>
+                <span className="font-semibold">5. 申請期限：</span>一般使用者須於借用日 <span className="text-red-600 font-semibold">3 天前</span>提出申請。
+              </li>
+              <li>
+                <span className="font-semibold">6. 借用期限：</span>單次連續借用最多 <span className="text-red-600 font-semibold">2 週（14 天）</span>，系統將自動核准；超過 2 週需送交人工審核。
+              </li>
+              <li>
+                <span className="font-semibold">7. 時間衝突：</span>同一空間同一時段僅允許一筆預約，系統將自動進行衝突比對，重疊時段申請將被拒絕。
+              </li>
+              <li>
+                <span className="font-semibold">8. 鑰匙管理：</span>借用人請至院辦公室辦理鑰匙借取與歸還手續，並依規定使用與維護空間。
               </li>
             </ul>
           </div>
@@ -41,7 +53,7 @@ export default function RulesPage() {
                 <span>→</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">空間管理人通過空間借用</span>
+                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">空間管理人通過野台借用</span>
                 <span>→</span>
               </div>
               <div className="flex items-center gap-2">

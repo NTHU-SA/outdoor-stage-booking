@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -40,7 +41,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Switch } from "@/components/ui/switch"
 import { RoomApproverEditor, ApproverEntry, UserOption } from "./room-approver-editor"
 import { getRoomApprovers, setRoomApprovers, getUsersForApproverSelection } from "@/app/actions/admin-approvers"
 import { Separator } from "@/components/ui/separator"
@@ -48,41 +48,22 @@ import { Separator } from "@/components/ui/separator"
 type RoomFormDialogProps = {
   mode: "create" | "edit"
   room?: Room
-  /** 現有空間類型清單，用於下拉選單 */
-  roomTypeOptions?: string[]
   children: React.ReactNode
 }
 
-export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: RoomFormDialogProps) {
+export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
   // Form State
   const [name, setName] = useState(room?.name || "")
-  const [roomCode, setRoomCode] = useState(room?.room_code || "")
-  const [floor, setFloor] = useState(room?.floor || "")
-  const [capacity, setCapacity] = useState(room?.capacity?.toString() || "")
-  const [roomType, setRoomType] = useState(room?.room_type || "")
-  const [selectedRoomType, setSelectedRoomType] = useState(
-    room && room.room_type && roomTypeOptions.includes(room.room_type)
-      ? room.room_type
-      : "",
-  )
-  const [customRoomType, setCustomRoomType] = useState(
-    room && room.room_type && !roomTypeOptions.includes(room.room_type)
-      ? room.room_type
-      : "",
-  )
-  const [equipment, setEquipment] = useState(
-    Array.isArray(room?.equipment) ? room?.equipment.join(", ") : ""
-  )
+  const [description, setDescription] = useState(room?.description || "")
   const [imageUrl, setImageUrl] = useState(room?.image_url || "")
   const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>(
     (room?.unavailable_periods && Array.isArray(room.unavailable_periods)) 
       ? room.unavailable_periods 
       : []
   )
-  const [allowNoon, setAllowNoon] = useState(room?.allow_noon || false)
 
   // Approver State
   const [approvers, setApprovers] = useState<ApproverEntry[]>([])
@@ -97,10 +78,10 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
 
-  const floorOptions = ["B1F", "1F", "2F", "3F", "4F", "5F", "6F", "7F", "8F"]
-
-  // Meeting rooms don't need unavailable periods (no semester schedule dependency)
-  const isMeetingRoom = roomType === "Meeting"
+  // Meeting rooms don't need unavailable periods (no semester schedule dependency) - Logic removed as roomType is removed
+  // We will assume unavailable periods are always applicable or handle as per requirement.
+  // Ideally, if roomType is gone, we might want to default to showing unavailable periods.
+  const isMeetingRoom = false 
 
   // Load approver data when dialog opens
   useEffect(() => {
@@ -134,61 +115,30 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
   useEffect(() => {
     if (open && room) {
       setName(room.name || "")
-      setRoomCode(room.room_code || "")
-      setFloor(room.floor || "")
-      setCapacity(room.capacity?.toString() || "")
-      setRoomType(room.room_type || "")
-      setSelectedRoomType(
-        room.room_type && roomTypeOptions.includes(room.room_type)
-          ? room.room_type
-          : ""
-      )
-      setCustomRoomType(
-        room.room_type && !roomTypeOptions.includes(room.room_type)
-          ? room.room_type
-          : ""
-      )
-      setEquipment(
-        Array.isArray(room.equipment) ? room.equipment.join(", ") : ""
-      )
+      setDescription(room.description || "")
       setImageUrl(room.image_url || "")
       setUnavailablePeriods(
         (room.unavailable_periods && Array.isArray(room.unavailable_periods))
           ? room.unavailable_periods
           : []
       )
-      setAllowNoon(room.allow_noon || false)
     } else if (open && mode === "create") {
       // Reset to defaults for create mode
       setName("")
-      setRoomCode("")
-      setFloor("")
-      setCapacity("")
-      setRoomType("")
-      setSelectedRoomType("")
-      setCustomRoomType("")
-      setEquipment("")
+      setDescription("")
       setImageUrl("")
       setUnavailablePeriods([])
-      setAllowNoon(false)
     }
-  }, [open, room, mode, roomTypeOptions])
+  }, [open, room, mode])
 
   // Capture initial state for unsaved changes detection
   useEffect(() => {
     if (open && !isLoadingApprovers) {
       setInitialState(JSON.stringify({
         name,
-        roomCode,
-        floor,
-        capacity,
-        roomType,
-        selectedRoomType,
-        customRoomType,
-        equipment,
+        description,
         imageUrl,
         unavailablePeriods,
-        allowNoon,
         approvers
       }))
     }
@@ -198,16 +148,9 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
     if (!newOpen) {
       const currentState = JSON.stringify({
         name,
-        roomCode,
-        floor,
-        capacity,
-        roomType,
-        selectedRoomType,
-        customRoomType,
-        equipment,
+        description,
         imageUrl,
         unavailablePeriods,
-        allowNoon,
         approvers
       })
       
@@ -244,18 +187,11 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
     setIsLoading(true)
 
     try {
-      const equipmentArray = equipment.split(",").map(s => s.trim()).filter(Boolean)
-      
       const data = {
         name,
-        room_code: roomCode,
-        floor,
-        capacity: capacity ? parseInt(capacity) : null,
-        room_type: roomType,
-        equipment: equipmentArray,
+        description: description || null,
         unavailable_periods: unavailablePeriods,
         image_url: imageUrl || null, // Ensure empty string becomes null
-        allow_noon: allowNoon,
       }
 
       if (mode === "create") {
@@ -364,105 +300,22 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                 <Label htmlFor="name">名稱</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
-                <div className="space-y-2">
-                <Label htmlFor="roomCode">編號</Label>
-                <Input id="roomCode" value={roomCode} onChange={(e) => setRoomCode(e.target.value)} />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="floor">樓層</Label>
-                    <Select value={floor} onValueChange={setFloor}>
-                        <SelectTrigger id="floor">
-                            <SelectValue placeholder="選擇樓層" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {floorOptions.map((f) => (
-                                <SelectItem key={f} value={f}>
-                                    {f}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="capacity">容納人數</Label>
-                    <Input id="capacity" type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="roomType">類型</Label>
-                    <div className="space-y-2">
-                      <Select
-                        value={selectedRoomType}
-                        onValueChange={(value) => {
-                          setSelectedRoomType(value)
-                          setCustomRoomType("")
-                          setRoomType(value)
-                        }}
-                      >
-                        <SelectTrigger id="roomType">
-                          <SelectValue placeholder="選擇類型（例如：會議室）" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roomTypeOptions.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex items-center gap-2">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                              aria-label="說明"
-                            >
-                              <HelpCircle className="h-4 w-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[200px]">
-                            <p className="text-xs">
-                              先從上方清單選擇常用類型，若沒有符合的類別，可在下方輸入自訂類別。
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                        <Input
-                          value={customRoomType}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setCustomRoomType(value)
-                            setSelectedRoomType("")
-                            setRoomType(value)
-                          }}
-                          placeholder="輸入新類別"
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="equipment">設備清單</Label>
-              <Input 
-                id="equipment" 
-                value={equipment} 
-                onChange={(e) => setEquipment(e.target.value)} 
-                placeholder="投影機, 白板, 麥克風 (以逗號分隔)"
+              <Label htmlFor="description">空間描述</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="請輸入空間描述（例如：可容納人數、用途、注意事項）"
+                rows={4}
               />
-            </div>
-
-            <div className="flex items-center space-x-2">
-               <Switch id="allow-noon" checked={allowNoon} onCheckedChange={setAllowNoon} />
-               <Label htmlFor="allow-noon">開放中午借用 (12:00 - 13:00)</Label>
             </div>
 
             {mode === "edit" && (

@@ -41,13 +41,9 @@ export type Booking = {
   user: {
     full_name: string
     student_id: string | null
-    department: {
-      name: string
-    } | null
   }
   room: {
     name: string
-    room_code: string | null
   }
   approval_steps?: ApprovalStepInfo[]
   has_multi_level_approval?: boolean
@@ -59,7 +55,7 @@ interface BookingListProps {
   showHistory: boolean
 }
 
-type SortField = 'department' | 'room' | 'time' | 'created_at' | null
+type SortField = 'room' | 'time' | 'created_at' | null
 type SortOrder = 'asc' | 'desc' | null
 
 export function BookingList({ initialBookings, showHistory }: BookingListProps) {
@@ -166,30 +162,10 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
 
     let comparison = 0
     switch (sortField) {
-      case 'department':
-        const deptA = a.user.department?.name || ''
-        const deptB = b.user.department?.name || ''
-        comparison = deptA.localeCompare(deptB, "zh-TW")
-        break
       case 'room':
-        // Sort by floor (B1F < 1F < 2F...), simplistic check based on room_code
-        // Assuming room_code first char is floor number or 'B'
-        const getFloorValue = (code: string | null) => {
-           if (!code) return 100 // No code, push to end
-           if (code.startsWith('B')) return -parseInt(code.slice(1,2)) || -0.5
-           return parseInt(code.slice(0,1)) || 100
-        }
-        const floorA = getFloorValue(a.room.room_code)
-        const floorB = getFloorValue(b.room.room_code)
-        
-        if (floorA !== floorB) {
-            comparison = floorA - floorB
-        } else {
-            // Same floor, sort by name
-            const nameA = a.room.name || ''
-            const nameB = b.room.name || ''
-            comparison = nameA.localeCompare(nameB, "zh-TW")
-        }
+        const nameA = a.room.name || ''
+        const nameB = b.room.name || ''
+        comparison = nameA.localeCompare(nameB, "zh-TW")
         break
       case 'time':
         comparison = new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
@@ -215,20 +191,9 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
         <TableHeader>
           <TableRow>
             <TableHead>申請人</TableHead>
-            <TableHead className="text-left w-[120px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('department')}>
-                    單位/系所
-                    {getSortIcon('department')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-left w-[200px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
-                    空間
-                    {getSortIcon('room')}
-                </Button>
-            </TableHead>
             <TableHead className="text-left w-[150px]">
                 <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
+
                     時間
                     {getSortIcon('time')}
                 </Button>
@@ -262,10 +227,9 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                   <div className="font-medium">{booking.user.full_name}</div>
                   <div className="text-xs text-muted-foreground">{booking.user.student_id}</div>
                 </TableCell>
-                <TableCell className="text-left">{booking.user.department?.name || '-'}</TableCell>
-                <TableCell className="max-w-[250px] truncate text-left" title={booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name}>
+                <TableCell className="max-w-[250px] truncate text-left" title={booking.room.name}>
                   {(() => {
-                    const fullName = booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name
+                    const fullName = booking.room.name
                     return fullName.length > 12 ? `${fullName.slice(0, 12)}...` : fullName
                   })()}
                 </TableCell>

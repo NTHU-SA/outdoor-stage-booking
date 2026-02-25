@@ -3,19 +3,14 @@ import { createClient } from '@/utils/supabase/server'
 export type Room = {
   id: string
   name: string
-  room_code: string | null
-  capacity: number | null
+  description: string | null
   unavailable_periods: {
     day: number
     start: string
     end: string
   }[] | null
-  equipment: unknown[] | null
-  floor: string | null
-  room_type: string | null
   image_url: string | null
   is_active: boolean | null
-  allow_noon: boolean | null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -62,10 +57,6 @@ export type Booking = {
   room: {
     id?: string
     name: string
-    room_code: string | null
-    capacity: number | null
-    floor: string | null
-    room_type: string | null
   }
   start_time: string
   end_time: string
@@ -122,11 +113,7 @@ export async function getUserBookings(): Promise<Booking[]> {
       created_at,
       room:rooms (
         id,
-        name,
-        room_code,
-        capacity,
-        floor,
-        room_type
+        name
       )
     `)
     .eq('user_id', user.id)

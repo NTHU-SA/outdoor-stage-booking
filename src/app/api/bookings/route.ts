@@ -3,7 +3,6 @@ import { createServiceClient } from '@/utils/supabase/service'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { 
-  isSameDay, 
   isDateWithin4Months, 
   isDateInLockedPeriod,
   isDateInSemester,
@@ -21,6 +20,38 @@ type UnavailablePeriod = {
   day: number // 0-6, 0 is Sunday
   start: string // "HH:mm"
   end: string // "HH:mm"
+}
+
+function iterateDays(start: Date, end: Date, cb: (day: Date) => string | null): string | null {
+  const cursor = new Date(start)
+  cursor.setHours(0, 0, 0, 0)
+  const last = new Date(end)
+  last.setHours(0, 0, 0, 0)
+
+  while (cursor <= last) {
+    const result = cb(new Date(cursor))
+    if (result) return result
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return null
+}
+
+function overlapWithDayMinutes(rangeStart: Date, rangeEnd: Date, day: Date, startMins: number, endMins: number): boolean {
+  const dayStart = new Date(day)
+  dayStart.setHours(0, 0, 0, 0)
+  const dayEnd = new Date(day)
+  dayEnd.setHours(23, 59, 59, 999)
+
+  const effectiveStart = new Date(Math.max(rangeStart.getTime(), dayStart.getTime()))
+  const effectiveEnd = new Date(Math.min(rangeEnd.getTime(), dayEnd.getTime()))
+
+  if (effectiveStart >= effectiveEnd) return false
+
+  const requestStart = effectiveStart.getHours() * 60 + effectiveStart.getMinutes()
+  const requestEnd = effectiveEnd.getHours() * 60 + effectiveEnd.getMinutes()
+
+  return Math.max(requestStart, startMins) < Math.min(requestEnd, endMins)
 }
 
 export async function POST(request: Request) {
@@ -42,10 +73,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '結束時間必須晚於開始時間' }, { status: 400 })
     }
 
-    // Check that booking is for a single day only (no multi-day bookings)
-    if (!isSameDay(startTime, endTime)) {
-      return NextResponse.json({ error: '每次預約僅能借用單日，不能跨日連續借用' }, { status: 400 })
-    }
 
     // Fetch user profile for role check
     const { data: profile } = await supabase
@@ -59,7 +86,7 @@ export async function POST(request: Request) {
     // Fetch room info first (need room_type for semester lock check)
     const { data: room } = await supabase
       .from('rooms')
-      .select('unavailable_periods, room_type, is_active, allow_noon')
+      .select('unavailable_periods, room_type, is_active')
       .eq('id', body.roomId)
       .single()
       
@@ -81,68 +108,71 @@ export async function POST(request: Request) {
     
     const semesters: SemesterSetting[] = semesterData || []
 
-    // 1. Check 7-day rule for non-admins
+    // 1. Check 3-day advance rule for non-admins
     if (!isAdmin) {
       const today = new Date()
       const minDate = new Date()
-      minDate.setDate(today.getDate() + 7)
+      minDate.setDate(today.getDate() + 3)
       minDate.setHours(0, 0, 0, 0) 
       
       if (startTime < minDate) {
-        return NextResponse.json({ error: '一般使用者需於 7 天前申請' }, { status: 400 })
+        return NextResponse.json({ error: '一般使用者需於 3 天前申請' }, { status: 400 })
       }
       
       // 2. Check 4-month limit for non-admins
       if (!isDateWithin4Months(startTime)) {
         return NextResponse.json({ error: '一般使用者僅能借用未來 4 個月內的日期' }, { status: 400 })
       }
+
+      if (!isDateWithin4Months(endTime)) {
+        return NextResponse.json({ error: '借用結束日期超出可預約範圍（4 個月）' }, { status: 400 })
+      }
       
       // 3. Check semester lock for non-admins (skip for Meeting rooms)
-      if (!isMeetingRoom && isDateInLockedPeriod(startTime, semesters, false)) {
-        return NextResponse.json({ error: '下學期課表尚未確認，暫不開放預約' }, { status: 400 })
-      }
-
-      // Check lunch break lock (12:00 - 13:00)
-      if (!room.allow_noon) {
-        const startMins = startTime.getHours() * 60 + startTime.getMinutes()
-        const endMins = endTime.getHours() * 60 + endTime.getMinutes()
-        const lunchStart = 12 * 60
-        const lunchEnd = 13 * 60
-
-        if (Math.max(startMins, lunchStart) < Math.min(endMins, lunchEnd)) {
-          return NextResponse.json({ error: '中午 12:00 - 13:00 不開放借用' }, { status: 400 })
+      if (!isMeetingRoom) {
+        const lockedError = iterateDays(startTime, endTime, (day) => {
+          if (isDateInLockedPeriod(day, semesters, false)) {
+            return '下學期課表尚未確認，暫不開放預約'
+          }
+          return null
+        })
+        if (lockedError) {
+          return NextResponse.json({ error: lockedError }, { status: 400 })
         }
       }
+
     }
 
-    // 4. Check unavailable periods (including lunch lock if configured)
+    // 4. Check unavailable periods
 
     if (room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
-      // Check if the booking date falls within any semester
-      const isInSemester = semesters.some(semester => isDateInSemester(startTime, semester))
+      const periods = room.unavailable_periods as UnavailablePeriod[]
 
-      if (isInSemester) {
-        const periods = room.unavailable_periods as UnavailablePeriod[]
-        const bookingDay = startTime.getDay()
-        
-        // Normalize booking times to minutes from start of day
-        const bookingStartMins = startTime.getHours() * 60 + startTime.getMinutes()
-        const bookingEndMins = endTime.getHours() * 60 + endTime.getMinutes()
-        
+      const unavailableError = iterateDays(startTime, endTime, (day) => {
+        const isInSemester = semesters.some(semester => isDateInSemester(day, semester))
+        if (!isInSemester) return null
+
+        const bookingDay = day.getDay()
+
         for (const period of periods) {
           if (period.day === bookingDay) {
-             const [pStartH, pStartM] = period.start.split(':').map(Number)
-             const [pEndH, pEndM] = period.end.split(':').map(Number)
-             
-             const periodStartMins = pStartH * 60 + pStartM
-             const periodEndMins = pEndH * 60 + pEndM
-             
-             // Check overlap: max(start1, start2) < min(end1, end2)
-             if (Math.max(bookingStartMins, periodStartMins) < Math.min(bookingEndMins, periodEndMins)) {
-               return NextResponse.json({ error: `此時段 (${period.start}-${period.end}) 不開放借用` }, { status: 400 })
-             }
+            const [pStartH, pStartM] = period.start.split(':').map(Number)
+            const [pEndH, pEndM] = period.end.split(':').map(Number)
+
+            const periodStartMins = pStartH * 60 + pStartM
+            const periodEndMins = pEndH * 60 + pEndM
+
+            if (overlapWithDayMinutes(startTime, endTime, day, periodStartMins, periodEndMins)) {
+              return `此時段 (${period.start}-${period.end}) 不開放借用`
+            }
           }
         }
+
+        return null
+      })
+
+      if (unavailableError) {
+        return NextResponse.json({ error: unavailableError }, { status: 400 })
       }
     }
 
@@ -167,6 +197,12 @@ export async function POST(request: Request) {
     }
 
     // Create booking
+    // Auto-approve if duration ≤ 14 days; require manual review if > 14 days
+    const durationMs = endTime.getTime() - startTime.getTime()
+    const durationDays = durationMs / (1000 * 60 * 60 * 24)
+    const autoApprove = durationDays <= 14
+    const bookingStatus = isAdmin ? 'approved' : (autoApprove ? 'approved' : 'pending')
+
     const { data: booking, error: createError } = await supabase
       .from('bookings')
       .insert({
@@ -175,7 +211,7 @@ export async function POST(request: Request) {
         start_time: body.startTime,
         end_time: body.endTime,
         purpose: body.purpose,
-        status: isAdmin ? 'approved' : 'pending'
+        status: bookingStatus
       })
       .select()
       .single()

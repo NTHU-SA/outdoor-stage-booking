@@ -67,24 +67,8 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
     let comparison = 0
     switch (sortField) {
       case 'room':
-        // Sort by floor (B1F < 1F < 2F...), simplistic check based on room_code
-        // Assuming room_code first char is floor number or 'B'
-        const getFloorValue = (code: string | null) => {
-           if (!code) return 100 // No code, push to end
-           if (code.startsWith('B')) return -parseInt(code.slice(1,2)) || -0.5
-           return parseInt(code.slice(0,1)) || 100
-        }
-        const floorA = getFloorValue(a.room.room_code)
-        const floorB = getFloorValue(b.room.room_code)
-        
-        if (floorA !== floorB) {
-            comparison = floorA - floorB
-        } else {
-            // Same floor, sort by name
-            const nameA = a.room.name || ''
-            const nameB = b.room.name || ''
-            comparison = nameA.localeCompare(nameB, "zh-TW")
-        }
+        // Sort by room name
+        comparison = (a.room.name || '').localeCompare(b.room.name || '', "zh-TW")
         break
       case 'time':
         comparison = new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
@@ -140,15 +124,13 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
                     {getSortIcon('room')}
                 </Button>
             </TableHead>
-            <TableHead className="text-left w-20">樓層</TableHead>
-            <TableHead className="text-left w-20">人限</TableHead>
-            <TableHead className="text-left w-[100px]">日期</TableHead>
-            <TableHead className="text-left w-[120px]">
+            <TableHead className="text-left w-[150px]">
                 <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
-                    時段
+                    日期
                     {getSortIcon('time')}
                 </Button>
             </TableHead>
+            <TableHead className="text-left w-[120px]">時段</TableHead>
             <TableHead>事由</TableHead>
             <TableHead className="text-left w-[100px]">狀態</TableHead>
             <TableHead className="text-left w-[140px]">
@@ -170,18 +152,16 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
           ) : (
             sortedBookings.map((booking) => (
               <TableRow key={booking.id}>
-                <TableCell className="max-w-[150px] truncate text-left" title={booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name}>
+                <TableCell className="max-w-[150px] truncate text-left" title={booking.room.name}>
                   {(() => {
-                    const fullName = booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name
-                    return fullName.length > 10 ? `${fullName.slice(0, 10)}...` : fullName
+                    const fullName = booking.room.name
+                    return fullName.length > 20 ? `${fullName.slice(0, 20)}...` : fullName
                   })()}
                 </TableCell>
-                <TableCell className="text-left">{booking.room.floor}</TableCell>
-                <TableCell className="text-left">{booking.room.capacity ? `${booking.room.capacity}人` : '-'}</TableCell>
-                <TableCell className="text-left">
+                <TableCell className="text-left w-[150px]">
                   {format(toTaipeiTime(booking.start_time), "PPP", { locale: zhTW })}
                 </TableCell>
-                <TableCell className="text-left">
+                <TableCell className="text-left w-[120px]">
                   {format(toTaipeiTime(booking.start_time), "HH:mm")} -{" "}
                   {format(toTaipeiTime(booking.end_time), "HH:mm")}
                 </TableCell>

@@ -22,7 +22,7 @@ export function AppFooter() {
             <div className="relative h-20 w-40">
               <Image
                 src="/logo.png"
-                alt="竹師教育學院 Logo"
+                alt="國立清華大學學生會 Logo"
                 fill
                 className="object-contain"
               />
@@ -38,31 +38,25 @@ export function AppFooter() {
                 <h3 className="text-lg font-semibold">聯絡資訊</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">
-                    國立清華大學 竹師教育學院
+                    國立清華大學 國立清華大學學生會
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    NTHU College of Education
+                    NTHU SA
                   </p>
                   <div className="space-y-1 pt-2">
                     <p>
                       <span className="font-medium">地址：</span>
                       <br />
-                      300044 新竹市光復路二段101號
-                      竹師教育學院大樓4樓423室
-                    </p>
-                    <p>
-                      <span className="font-medium">電話：</span>
-                      <br />
-                      (03) 571-5131 轉分機 61007
+                      300 新竹市光復路二段 101 號 ，國立清華大學，水木生活中心 2F R202 學生會辦公室（水木展演廳旁）
                     </p>
                     <p>
                       <span className="font-medium">公務信箱：</span>
                       <br />
                       <a
-                        href="mailto:kinshan.lin@mx.nthu.edu.tw"
+                        href="mailto:nthusa@gapp.nthu.edu.tw"
                         className="text-primary hover:underline"
                       >
-                        kinshan.lin@mx.nthu.edu.tw
+                        nthusa@gapp.nthu.edu.tw
                       </a>
                     </p>
                   </div>
@@ -75,36 +69,20 @@ export function AppFooter() {
                 <ul className="space-y-2 text-sm">
                   <li>
                     <Link
-                      href="https://ec.site.nthu.edu.tw/p/406-1584-296032,r11504.php?Lang=zh-tw"
+                      href="https://nthusa.site.nthu.edu.tw/p/412-1438-21464.php?Lang=zh-tw"
                       className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
                     >
                       借用管理辦法/規範
                     </Link>
                   </li>
                   <li>
-                    <span className="text-muted-foreground cursor-not-allowed">
-                      空間配置圖
-                    </span>
-                    <span className="text-xs text-muted-foreground block mt-1">
-                      (連結待設定)
-                    </span>
-                  </li>
-                  <li>
-                    <span className="text-muted-foreground cursor-not-allowed">
-                      常見問題 (FAQ)
-                    </span>
-                    <span className="text-xs text-muted-foreground block mt-1">
-                      (頁面待建立)
-                    </span>
-                  </li>
-                  <li>
                     <a
-                      href="https://ec.site.nthu.edu.tw/"
+                      href="https://nthusa.site.nthu.edu.tw/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
                     >
-                      學院官方網站
+                      學生會官方網站
                     </a>
                   </li>
                 </ul>
@@ -117,7 +95,7 @@ export function AppFooter() {
                   <ul className="space-y-2 text-sm">
                     <li>
                       <a
-                        href="mailto:nthu-edu-it@will-cheng.com?subject=系統問題回報"
+                        href="mailto:sa-it@nthusa.tw?subject=野台借用系統問題回報"
                         className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
                       >
                         系統問題回報
@@ -126,35 +104,13 @@ export function AppFooter() {
                         (網頁操作問題請點此)
                       </span>
                     </li>
-                    <li>
-                      <span className="text-muted-foreground cursor-not-allowed">
-                        最新公告
-                      </span>
-                      <span className="text-xs text-muted-foreground block mt-1">
-                        (功能待建立)
-                      </span>
-                    </li>
-                    <li>
-                      <p className="text-muted-foreground">
-                        開發者：
-                        <br />
-                        <a
-                          href="https://github.com/weifish0"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs hover:underline"
-                        >
-                          Will Cheng
-                        </a>
-                      </p>
-                    </li>
                   </ul>
                 </div>
 
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <h3 className="text-lg font-semibold">關於系統</h3>
                   <p>
-                    本系統提供竹師教育學院新教育大樓空間借用服務，讓您輕鬆管理空間預約申請。
+                    本系統為國立清華大學學生會資訊處設計，讓您輕鬆管理野台預約申請。
                   </p>
                 </div>
               </div>
@@ -166,7 +122,7 @@ export function AppFooter() {
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
               <div className="text-center md:text-left">
                 <p>
-                  © 2025 國立清華大學 竹師教育學院 (NTHU College of Education).
+                  © 2026 國立清華大學學生會 (NTHU SA).
                   All Rights Reserved.
                 </p>
               </div>

@@ -20,9 +20,6 @@ export type AdminBooking = Booking & {
     full_name: string
     email: string
     student_id: string | null
-    department: {
-      name: string
-    } | null
   }
   approval_steps?: ApprovalStepInfo[]
   has_multi_level_approval?: boolean
@@ -48,16 +45,12 @@ export async function getAdminBookings(
       purpose,
       created_at,
       room:rooms (
-        name,
-        room_code
+        name
       ),
       user:profiles (
         full_name,
         student_id,
-        username, 
-        department:departments (
-           name
-        )
+        username
       )
     `)
 

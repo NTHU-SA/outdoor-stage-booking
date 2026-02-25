@@ -90,10 +90,6 @@ export function BookingDetailDialog({
                    <Label className="text-muted-foreground text-xs">學號/員編</Label>
                    <div>{booking.user.student_id || '-'}</div>
                 </div>
-                <div className="col-span-2">
-                   <Label className="text-muted-foreground text-xs">單位/系所</Label>
-                   <div>{booking.user.department?.name || '-'}</div>
-                </div>
              </div>
           </div>
 
@@ -105,7 +101,7 @@ export function BookingDetailDialog({
              <div className="grid gap-3 text-sm">
                 <div>
                    <Label className="text-muted-foreground text-xs">借用空間</Label>
-                   <div>{booking.room.name} {booking.room.room_code ? `(${booking.room.room_code})` : ''}</div>
+                   <div>{booking.room.name}</div>
                 </div>
                 <div>
                    <Label className="text-muted-foreground text-xs">借用時間</Label>

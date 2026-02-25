@@ -53,7 +53,7 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
         <CardHeader>
           <CardTitle>填寫預約申請</CardTitle>
           <CardDescription>
-            請依規定填寫，一般使用者需於 7 天前提出申請。
+            請依規定填寫，一般使用者需於 3 天前提出申請。
             <br />
             點擊右側行事曆空白處可快速填入時間。
           </CardDescription>

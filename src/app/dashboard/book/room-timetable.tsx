@@ -12,7 +12,6 @@ import { Loader2 } from 'lucide-react'
 import type { EventInput, DateSelectArg } from '@fullcalendar/core'
 import './room-timetable.css'
 import { toast } from "sonner"
-import { isSameDay } from "date-fns"
 
 type RoomTimetableProps = {
   roomId: string
@@ -107,15 +106,6 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
       return
     }
 
-    // Check if cross day
-    // Subtract 1ms from end to handle midnight correctly (e.g. 2024-01-01 14:00 to 2024-01-02 00:00 should be valid)
-    const adjustedEnd = new Date(end.getTime() - 1)
-    if (!isSameDay(start, adjustedEnd)) {
-       toast.error("無法跨日預約")
-       selectInfo.view.calendar.unselect()
-       return
-    }
-
     // Only allow selection in future (double check)
     if (start >= now) {
       onSelectSlot?.({ start, end })
@@ -158,8 +148,8 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           day: '日',
         }}
         slotDuration="00:30:00"
-        slotMinTime="08:00:00"
-        slotMaxTime="22:00:00"
+        slotMinTime="00:00:00"
+        slotMaxTime="24:00:00"
         slotLabelInterval="01:00:00"
         slotLabelFormat={{
           hour: '2-digit',

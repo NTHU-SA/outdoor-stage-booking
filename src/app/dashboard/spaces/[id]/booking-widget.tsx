@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
-import { zhTW } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -33,7 +32,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { CalendarIcon } from "lucide-react"
 import { 
   isDateWithin4Months, 
   isDateInLockedPeriod 
@@ -47,9 +45,6 @@ type BookingWidgetProps = {
   selectedSlot: { start: Date; end: Date } | null
   onChange: (slot: { start: Date; end: Date } | null) => void
 }
-
-import { useEffect } from "react"
-// ... imports ...
 
 export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange }: BookingWidgetProps) {
   const router = useRouter()
@@ -182,10 +177,10 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
     if (!selectedSlot) return
 
     const [hours, minutes] = timeStr.split(':').map(Number)
-    const newDate = new Date(selectedSlot.start) // Keep the date same as start
-    newDate.setHours(hours, minutes, 0, 0)
-
     if (type === 'start') {
+        const newDate = new Date(selectedSlot.start)
+        newDate.setHours(hours, minutes, 0, 0)
+
         // If new start is after current end, push end forward by 30 mins
         if (newDate >= selectedSlot.end) {
              const newEnd = new Date(newDate.getTime() + 1800000) // +30 mins
@@ -194,34 +189,68 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
              onChange({ ...selectedSlot, start: newDate })
         }
     } else {
-        // Construct the end date properly (same day as start)
-        const newEndDate = new Date(selectedSlot.start)
+        // Keep end date, only update time
+        const newEndDate = new Date(selectedSlot.end)
         newEndDate.setHours(hours, minutes, 0, 0)
+
+        if (newEndDate <= selectedSlot.start) {
+          toast.error("結束時間必須晚於開始時間")
+          return
+        }
         
         onChange({ ...selectedSlot, end: newEndDate })
     }
   }
   
-  const handleDateSelect = (date: Date | undefined) => {
+  const handleStartDateSelect = (date: Date | undefined) => {
       if (!date) return
 
       // If we already have a slot, keep the time but update the date
       if (selectedSlot) {
           const newStart = new Date(date)
           newStart.setHours(selectedSlot.start.getHours(), selectedSlot.start.getMinutes(), 0, 0)
+
+          const newEnd = new Date(selectedSlot.end)
           
-          const newEnd = new Date(date)
-          newEnd.setHours(selectedSlot.end.getHours(), selectedSlot.end.getMinutes(), 0, 0)
-          
-          onChange({ start: newStart, end: newEnd })
+          if (newStart >= newEnd) {
+            const adjustedEnd = new Date(newStart.getTime() + 1800000)
+            onChange({ start: newStart, end: adjustedEnd })
+          } else {
+            onChange({ start: newStart, end: newEnd })
+          }
       } else {
           // If no slot selected, default to 08:00 - 09:00 on the selected date
           const newStart = new Date(date)
           newStart.setHours(8, 0, 0, 0)
-          
+
           const newEnd = new Date(date)
           newEnd.setHours(9, 0, 0, 0)
-          
+
+          onChange({ start: newStart, end: newEnd })
+      }
+  }
+
+  const handleEndDateSelect = (date: Date | undefined) => {
+      if (!date) return
+
+      if (selectedSlot) {
+          const newEnd = new Date(date)
+          newEnd.setHours(selectedSlot.end.getHours(), selectedSlot.end.getMinutes(), 0, 0)
+
+          if (newEnd <= selectedSlot.start) {
+            toast.error("結束日期時間必須晚於開始日期時間")
+            return
+          }
+
+          onChange({ ...selectedSlot, end: newEnd })
+      } else {
+          // If no slot selected yet, create a default slot ending on selected date
+          const newStart = new Date(date)
+          newStart.setHours(8, 0, 0, 0)
+
+          const newEnd = new Date(date)
+          newEnd.setHours(9, 0, 0, 0)
+
           onChange({ start: newStart, end: newEnd })
       }
   }
@@ -234,65 +263,119 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
     ? format(selectedSlot.end, "HH:mm")
     : ""
 
-  const isMeetingRoom = room.room_type === "Meeting"
+  const isMeetingRoom = false
 
   return (
     <>
       <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden sticky top-4">
         <div className="p-6 flex flex-col gap-4">
 
-          <div className="rounded-lg border border-neutral-200 dark:border-neutral-800">
+            <div className="rounded-lg border border-neutral-200 dark:border-neutral-800">
              {/* Date Section */}
-             <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">日期</div>
+             <div className="grid grid-cols-2 border-b border-neutral-200 dark:border-neutral-800">
+              <div className="p-3 border-r border-neutral-200 dark:border-neutral-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">開始日期</div>
                 <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            className={cn(
-                                "w-full justify-start p-0 h-auto font-medium hover:bg-transparent text-left",
-                                !selectedSlot && "text-muted-foreground"
-                            )}
-                        >
-                            {selectedSlot ? (
-                                format(selectedSlot.start, "yyyy 年 M 月 d 日")
-                            ) : (
-                                <span>選擇日期</span>
-                            )}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={selectedSlot?.start}
-                            onSelect={handleDateSelect}
-                            initialFocus
-                            disabled={(date) => {
-                                const today = new Date()
-                                today.setHours(0, 0, 0, 0)
-                                
-                                // Always disable past dates
-                                if (date < today) return true
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start p-0 h-auto font-medium hover:bg-transparent text-left",
+                        !selectedSlot && "text-muted-foreground"
+                      )}
+                    >
+                      {selectedSlot ? (
+                        format(selectedSlot.start, "yyyy 年 M 月 d 日")
+                      ) : (
+                        <span>選擇日期</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedSlot?.start}
+                      onSelect={handleStartDateSelect}
+                      initialFocus
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
 
-                                // If user is NOT admin, apply additional restrictions
-                                if (!isAdmin) {
-                                    // 7-day rule
-                                    const minDate = new Date(today)
-                                    minDate.setDate(today.getDate() + 7)
-                                    if (date < minDate) return true
-                                    
-                                    // 4-month limit
-                                    if (!isDateWithin4Months(date)) return true
-                                    
-                                    // Semester lock (skip for Meeting rooms)
-                                    if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
-                                }
-                                
-                                return false
-                            }}
-                        />
-                    </PopoverContent>
+                        // Always disable past dates
+                        if (date < today) return true
+
+                        // If user is NOT admin, apply additional restrictions
+                        if (!isAdmin) {
+                          // 3-day rule
+                          const minDate = new Date(today)
+                          minDate.setDate(today.getDate() + 3)
+                          if (date < minDate) return true
+
+                          // 4-month limit
+                          if (!isDateWithin4Months(date)) return true
+
+                          // Semester lock (rules apply to all rooms now)
+                          if (isDateInLockedPeriod(date, semesters, false)) return true
+                        }
+
+                        return false
+                      }}
+                    />
+                  </PopoverContent>
                 </Popover>
+              </div>
+
+              <div className="p-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">結束日期</div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start p-0 h-auto font-medium hover:bg-transparent text-left",
+                        !selectedSlot && "text-muted-foreground"
+                      )}
+                      disabled={!selectedSlot}
+                    >
+                      {selectedSlot ? (
+                        format(selectedSlot.end, "yyyy 年 M 月 d 日")
+                      ) : (
+                        <span>選擇日期</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedSlot?.end}
+                      onSelect={handleEndDateSelect}
+                      initialFocus
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+
+                        if (date < today) return true
+
+                        if (!isAdmin) {
+                          const minDate = new Date(today)
+                          minDate.setDate(today.getDate() + 3)
+                          if (date < minDate) return true
+                          if (!isDateWithin4Months(date)) return true
+                          if (isDateInLockedPeriod(date, semesters, false)) return true
+                        }
+
+                        if (selectedSlot) {
+                        const minEndDate = new Date(selectedSlot.start)
+                        minEndDate.setHours(0, 0, 0, 0)
+                        if (date < minEndDate) return true
+                        }
+
+                        return false
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
              </div>
              
              {/* Time Section */}
@@ -346,7 +429,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
             <DialogTitle>確認預約資訊</DialogTitle>
             <DialogDescription>
               {room.name} <br/>
-              {selectedSlot && format(selectedSlot.start, "yyyy/MM/dd HH:mm")} - {selectedSlot && format(selectedSlot.end, "HH:mm")}
+              {selectedSlot && format(selectedSlot.start, "yyyy/MM/dd HH:mm")} - {selectedSlot && format(selectedSlot.end, "yyyy/MM/dd HH:mm")}
             </DialogDescription>
           </DialogHeader>
           

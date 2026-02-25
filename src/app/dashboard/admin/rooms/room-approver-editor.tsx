@@ -37,7 +37,7 @@ interface RoomApproverEditorProps {
 const USER_TYPE_LABELS: Record<string, string> = {
   teacher: "教師",
   staff: "職員",
-  assistant: "助教",
+  external: "校外人士",
   student: "學生",
 }
 

@@ -68,6 +68,9 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     },
   })
 
+  // Track end date separately for the disabled logic
+  const watchedStartDate = form.watch("startDate")
+
   // Sync form roomId with prop change
   useEffect(() => {
     if (selectedRoomId) {
@@ -78,7 +81,8 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   // Sync form date/time with prefillSlot
   useEffect(() => {
     if (prefillSlot) {
-        form.setValue("date", prefillSlot.start)
+        form.setValue("startDate", prefillSlot.start)
+        form.setValue("endDate", prefillSlot.end)
         
         const startHour = prefillSlot.start.getHours()
         const startMinute = prefillSlot.start.getMinutes()
@@ -123,11 +127,11 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   }, [semesterSettings.length])
 
   async function onSubmit(values: BookingFormValues) {
-    const startDateTime = new Date(values.date)
+    const startDateTime = new Date(values.startDate)
     const [startHour, startMinute] = values.startTime.split(':').map(Number)
     startDateTime.setHours(startHour, startMinute, 0, 0)
     
-    const endDateTime = new Date(values.date)
+    const endDateTime = new Date(values.endDate)
     const [endHour, endMinute] = values.endTime.split(':').map(Number)
     endDateTime.setHours(endHour, endMinute, 0, 0)
 
@@ -182,8 +186,9 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
 
   // Get selected room's type to determine if semester lock applies
   const watchedRoomId = form.watch("roomId")
-  const currentSelectedRoom = rooms.find(r => r.id === watchedRoomId)
-  const isMeetingRoom = currentSelectedRoom?.room_type === "Meeting"
+  
+  // Previously checked for "Meeting" type. Since room types are removed, we default to false (enforce rules)
+  const isMeetingRoom = false
 
   return (
     <Form {...form}>
@@ -227,79 +232,125 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                 <SelectContent>
                   {rooms.map((room) => (
                     <SelectItem key={room.id} value={room.id}>
-                       {room.room_code} - {room.name} {room.capacity && `(${room.capacity}人)`}
+                       {room.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <FormDescription>
-                {rooms.find(r => r.id === field.value)?.room_code} {rooms.find(r => r.id === field.value)?.room_type && `(${rooms.find(r => r.id === field.value)?.room_type})`}
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>日期</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-60 pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: zhTW })
-                      ) : (
-                        <span>選擇日期</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => {
-                      const today = new Date()
-                      today.setHours(0, 0, 0, 0)
-                      
-                      // Always disable past dates
-                      if (date < today) return true
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <FormField
+            control={form.control}
+            name="startDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>開始日期</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-48 pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: zhTW })
+                        ) : (
+                          <span>選擇開始日期</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        if (date < today) return true
+                        if (!isAdmin) {
+                          const minDate = new Date(today)
+                          minDate.setDate(today.getDate() + 3)
+                          if (date < minDate) return true
+                          if (!isDateWithin4Months(date)) return true
+                          if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
+                        }
+                        return false
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                      // If user is NOT admin, apply additional restrictions
-                      if (!isAdmin) {
-                         // 7-day rule
-                         const minDate = new Date(today)
-                         minDate.setDate(today.getDate() + 7)
-                         if (date < minDate) return true
-                         
-                         // 4-month limit
-                         if (!isDateWithin4Months(date)) return true
-                         
-                         // Semester lock (skip for Meeting rooms)
-                         if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
-                      }
-                      
-                      return false
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="endDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>結束日期</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-48 pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: zhTW })
+                        ) : (
+                          <span>選擇結束日期</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        if (date < today) return true
+                        if (!isAdmin) {
+                          const minDate = new Date(today)
+                          minDate.setDate(today.getDate() + 3)
+                          if (date < minDate) return true
+                          if (!isDateWithin4Months(date)) return true
+                          if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
+                        }
+                        // endDate must be >= startDate
+                        if (watchedStartDate) {
+                          const startDay = new Date(watchedStartDate)
+                          startDay.setHours(0, 0, 0, 0)
+                          if (date < startDay) return true
+                        }
+                        return false
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="flex gap-4">
           <FormField

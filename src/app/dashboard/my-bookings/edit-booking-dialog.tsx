@@ -52,7 +52,6 @@ import {
   isDateInLockedPeriod, 
   getCurrentSemester,
   getNextSemester,
-  isSameDay,
   isDateInSemester
 } from "@/utils/semester"
 
@@ -98,18 +97,22 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       roomId: booking.room_id || booking.room?.id || "",
-      date: new Date(booking.start_time),
+      startDate: new Date(booking.start_time),
+      endDate: new Date(booking.end_time),
       startTime: format(new Date(booking.start_time), "HH:mm"),
       endTime: format(new Date(booking.end_time), "HH:mm"),
       purpose: booking.purpose,
     },
   })
 
+  const watchedStartDate = form.watch("startDate")
+
   // Update form when booking changes (though key prop in parent should handle this)
   useEffect(() => {
     form.reset({
       roomId: booking.room_id || booking.room?.id || "",
-      date: new Date(booking.start_time),
+      startDate: new Date(booking.start_time),
+      endDate: new Date(booking.end_time),
       startTime: format(new Date(booking.start_time), "HH:mm"),
       endTime: format(new Date(booking.end_time), "HH:mm"),
       purpose: booking.purpose,
@@ -118,28 +121,30 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
 
 
   // Update selectedSlot when form values change
-  const date = form.watch("date")
+  const startDateVal = form.watch("startDate")
+  const endDateVal = form.watch("endDate")
   const startTime = form.watch("startTime")
   const endTime = form.watch("endTime")
   
   useEffect(() => {
-    if (date && startTime && endTime) {
+    if (startDateVal && endDateVal && startTime && endTime) {
       const [startHour, startMinute] = startTime.split(':').map(Number)
       const [endHour, endMinute] = endTime.split(':').map(Number)
       
-      const start = new Date(date)
+      const start = new Date(startDateVal)
       start.setHours(startHour, startMinute, 0, 0)
       
-      const end = new Date(date)
+      const end = new Date(endDateVal)
       end.setHours(endHour, endMinute, 0, 0)
       
       setSelectedSlot({ start, end })
     }
-  }, [date, startTime, endTime])
+  }, [startDateVal, endDateVal, startTime, endTime])
 
   // Handle slot selection from timetable
   const handleSlotSelect = (slotInfo: { start: Date; end: Date }) => {
-    form.setValue("date", slotInfo.start)
+    form.setValue("startDate", slotInfo.start)
+    form.setValue("endDate", slotInfo.end)
     form.setValue("startTime", format(slotInfo.start, "HH:mm"))
     form.setValue("endTime", format(slotInfo.end, "HH:mm"))
     setSelectedSlot(slotInfo)
@@ -178,30 +183,23 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   async function onSubmit(values: z.infer<typeof bookingFormSchema>) {
     setIsLoading(true)
     
-    const startDateTime = new Date(values.date)
+    const startDateTime = new Date(values.startDate)
     const [startHour, startMinute] = values.startTime.split(':').map(Number)
     startDateTime.setHours(startHour, startMinute, 0, 0)
     
-    const endDateTime = new Date(values.date)
+    const endDateTime = new Date(values.endDate)
     const [endHour, endMinute] = values.endTime.split(':').map(Number)
     endDateTime.setHours(endHour, endMinute, 0, 0)
 
-    // Check that start and end are on the same day
-    if (!isSameDay(startDateTime, endDateTime)) {
-      toast.error("每次預約僅能借用單日，不能跨日連續借用")
-      setIsLoading(false)
-      return
-    }
-
-    // Check user role for 7-day rule
+    // Check user role for 3-day advance rule
     if (!isAdmin) {
       const today = new Date()
       const minDate = new Date()
-      minDate.setDate(today.getDate() + 7)
+      minDate.setDate(today.getDate() + 3)
       minDate.setHours(0, 0, 0, 0)
       
       if (startDateTime < minDate) {
-        toast.error("一般使用者需於 7 天前申請")
+        toast.error("一般使用者需於 3 天前申請")
         setIsLoading(false)
         return
       }
@@ -213,10 +211,8 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
         return
       }
       
-      // Check semester lock (skip for Meeting rooms)
-      const roomToBook = rooms.find(r => r.id === values.roomId)
-      const isBookingMeetingRoom = roomToBook?.room_type === "Meeting"
-      if (!isBookingMeetingRoom && isDateInLockedPeriod(startDateTime, semesters, false)) {
+      // Check semester lock (rules apply to all rooms now)
+      if (isDateInLockedPeriod(startDateTime, semesters, false)) {
         toast.error("下學期課表尚未確認，暫不開放預約")
         setIsLoading(false)
         return
@@ -281,9 +277,9 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     }
   }
 
-  // Generate 30-minute interval time slots from 08:00 to 22:00
-  const timeSlots = Array.from({ length: 29 }, (_, i) => {
-    const totalMinutes = 8 * 60 + i * 30
+  // Generate 30-minute interval time slots from 00:00 to 23:30 (24 hours)
+  const timeSlots = Array.from({ length: 48 }, (_, i) => {
+    const totalMinutes = i * 30
     const hour = Math.floor(totalMinutes / 60)
     const minute = totalMinutes % 60
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
@@ -297,7 +293,9 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   // Get selected room's type to determine if semester lock applies
   const selectedRoomId = form.watch("roomId")
   const selectedRoom = rooms.find(r => r.id === selectedRoomId)
-  const isMeetingRoom = selectedRoom?.room_type === "Meeting"
+  
+  // Previously checked if room is "Meeting" type. Since room types are removed, we default to false (enforce rules)
+  const isMeetingRoom = false
 
   return (
     <>
@@ -354,75 +352,124 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                     <SelectContent>
                       {rooms.map((room) => (
                         <SelectItem key={room.id} value={room.id}>
-                          {room.room_code} - {room.name} {room.capacity && `(${room.capacity}人)`}
+                          {room.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    {rooms.find(r => r.id === field.value)?.room_code} {rooms.find(r => r.id === field.value)?.room_type && `(${rooms.find(r => r.id === field.value)?.room_type})`}
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>日期</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-60 pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: zhTW })
-                          ) : (
-                            <span>選擇日期</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => {
-                          const today = new Date()
-                          today.setHours(0, 0, 0, 0)
-                          
-                          if (date < today) return true
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>開始日期</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-44 pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: zhTW })
+                            ) : (
+                              <span>選擇開始日期</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => {
+                            const today = new Date()
+                            today.setHours(0, 0, 0, 0)
+                            if (date < today) return true
+                            if (!isAdmin) {
+                              const minDate = new Date(today)
+                              minDate.setDate(today.getDate() + 3)
+                              if (date < minDate) return true
+                              if (!isDateWithin4Months(date)) return true
+                              if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
+                            }
+                            return false
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                          if (!isAdmin) {
-                             const minDate = new Date(today)
-                             minDate.setDate(today.getDate() + 7)
-                             if (date < minDate) return true
-                             
-                             if (!isDateWithin4Months(date)) return true
-                             
-                             // Semester lock (skip for Meeting rooms)
-                             if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
-                          }
-                          
-                          return false
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>結束日期</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-44 pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: zhTW })
+                            ) : (
+                              <span>選擇結束日期</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => {
+                            const today = new Date()
+                            today.setHours(0, 0, 0, 0)
+                            if (date < today) return true
+                            if (!isAdmin) {
+                              const minDate = new Date(today)
+                              minDate.setDate(today.getDate() + 3)
+                              if (date < minDate) return true
+                              if (!isDateWithin4Months(date)) return true
+                              if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
+                            }
+                            if (watchedStartDate) {
+                              const startDay = new Date(watchedStartDate)
+                              startDay.setHours(0, 0, 0, 0)
+                              if (date < startDay) return true
+                            }
+                            return false
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex gap-4">
               <FormField
@@ -521,7 +568,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                     onSelectSlot={handleSlotSelect}
                     selectedSlot={selectedSlot}
                     excludeBookingId={booking.id}
-                    focusDate={form.watch("date")}
+                    focusDate={form.watch("startDate")}
                   />
                 ) : (
                   <div className="h-[600px] flex items-center justify-center text-muted-foreground border rounded-lg">

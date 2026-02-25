@@ -2,7 +2,6 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { 
-  isSameDay, 
   isDateWithin4Months, 
   isDateInLockedPeriod,
   isDateInSemester,
@@ -65,9 +64,6 @@ export async function PUT(
       return NextResponse.json({ error: '結束時間必須晚於開始時間' }, { status: 400 })
     }
 
-    if (!isSameDay(startTime, endTime)) {
-      return NextResponse.json({ error: '每次預約僅能借用單日，不能跨日連續借用' }, { status: 400 })
-    }
 
     // Fetch user profile for role check
     const { data: profile } = await supabase
@@ -103,11 +99,11 @@ export async function PUT(
     if (!isAdmin) {
       const today = new Date()
       const minDate = new Date()
-      minDate.setDate(today.getDate() + 7)
+      minDate.setDate(today.getDate() + 3)
       minDate.setHours(0, 0, 0, 0) 
       
       if (startTime < minDate) {
-        return NextResponse.json({ error: '一般使用者需於 7 天前申請' }, { status: 400 })
+        return NextResponse.json({ error: '一般使用者需於 3 天前申請' }, { status: 400 })
       }
       
       if (!isDateWithin4Months(startTime)) {

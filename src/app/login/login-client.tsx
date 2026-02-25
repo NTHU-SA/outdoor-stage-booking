@@ -1,7 +1,7 @@
 "use client"
 
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -25,7 +25,7 @@ type Department = {
   name: string
 }
 
-export default function LoginClient({ initialDepartments }: { initialDepartments: Department[] }) {
+export default function LoginClient({ }: { }) {
   const supabase = createClient()
   const router = useRouter()
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -51,18 +51,17 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
   const [confirmPassword, setConfirmPassword] = useState("")
   const [signUpFullName, setSignUpFullName] = useState("")
   const [signUpPhone, setSignUpPhone] = useState("")
-  const [signUpDepartmentId, setSignUpDepartmentId] = useState<string>("")
-  const [signUpUserType, setSignUpUserType] = useState<"teacher" | "staff" | "assistant" | "student" | "">("")
-  const [signUpSupervisor, setSignUpSupervisor] = useState("")
+  const [signUpUserType, setSignUpUserType] = useState<"teacher" | "staff" | "external" | "student" | "">("")
   const [isSigningUp, setIsSigningUp] = useState(false)
   const [showSignUpPassword, setShowSignUpPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments)
+  // Ref to prevent onAuthStateChange from redirecting during signup
+  const isSigningUpRef = useRef(false)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' && !isSigningUpRef.current) {
         const params = new URLSearchParams(window.location.search)
         const next = params.get('next') || '/dashboard'
         router.push(next)
@@ -191,30 +190,23 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
           return
       }
 
-      if (!signUpDepartmentId) {
-          toast.error("請選擇所屬單位")
-          return
-      }
-      
-      if (!signUpUserType) {
-          toast.error("請選擇身份別")
-          return
-      }
-      
-      // 如果是學生，必須填寫上司老師
-      if (signUpUserType === 'student' && !signUpSupervisor.trim()) {
-          toast.error("學生身份需填寫上司老師")
-          return
-      }
-      
       if (signUpPassword !== confirmPassword) {
           toast.error("兩次輸入的密碼不一致")
           return
       }
 
       setIsSigningUp(true)
+      isSigningUpRef.current = true
 
       try {
+          // 檢查信箱域名：若非 nthu.edu.tw 或 *.nthu.edu.tw 信箱，自動將身份別設為校外人士
+          let finalUserType = signUpUserType
+          const emailDomain = signUpEmail.split('@')[1]?.toLowerCase()
+          if (finalUserType !== 'external' && emailDomain !== 'nthu.edu.tw' && !emailDomain.endsWith('.nthu.edu.tw')) {
+              finalUserType = 'external'
+              toast.info('您的信箱非 nthu.edu.tw，身份別已自動設為校外人士')
+          }
+
           const { data, error } = await supabase.auth.signUp({
               email: signUpEmail,
               password: signUpPassword,
@@ -223,22 +215,15 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
                   data: {
                       full_name: signUpFullName,
                       phone: signUpPhone,
-                      department_id: signUpDepartmentId ? Number(signUpDepartmentId) : null,
-                      user_type: signUpUserType,
-                      supervisor_name: signUpUserType === 'student' ? signUpSupervisor : null,
+                      user_type: finalUserType,
                   }
               }
           })
 
           if (error) {
-            if (error.message.includes("already registered") || error.status === 422) {
-                toast.error("此 Email 已經註冊過，請直接登入")
-            } else {
-                toast.error(error.message || "註冊失敗，請稍後再試")
-            }
+            toast.error(error.message || "註冊失敗，請稍後再試")
             return
           }
-
           if (data?.user && data.user.identities && data.user.identities.length === 0) {
             toast.error("此 Email 已經註冊過，請直接登入")
             return
@@ -252,6 +237,7 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
           console.error(error)
       } finally {
           setIsSigningUp(false)
+          isSigningUpRef.current = false
       }
   }
 
@@ -268,8 +254,8 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
         />
         <div className="absolute inset-0 bg-black/10" /> {/* Subtle overlay */}
         <div className="absolute bottom-6 left-6 lg:bottom-10 lg:left-10 z-20 text-white p-4">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-1 lg:mb-2">竹師教育學院</h2>
-            <p className="text-base lg:text-lg opacity-90">空間借用系統</p>
+            <h2 className="text-2xl lg:text-3xl font-bold mb-1 lg:mb-2">國立清華大學學生會</h2>
+            <p className="text-base lg:text-lg opacity-90">野台借用系統</p>
         </div>
       </div>
 
@@ -312,7 +298,7 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
                         <Input 
                             id="signin-email"
                             type="email"
-                            placeholder="name@example.com"
+                            placeholder="您的信箱"
                             value={signInEmail}
                             onChange={(e) => setSignInEmail(e.target.value)}
                             required
@@ -356,11 +342,14 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
                         <Input 
                             id="signup-email"
                             type="email"
-                            placeholder="name@example.com"
+                            placeholder="您的信箱"
                             value={signUpEmail}
                             onChange={(e) => setSignUpEmail(e.target.value)}
                             required
                         />
+                        <p className="text-xs text-muted-foreground">
+                            校內人士請使用 @gapp.nthu.edu.tw 或其他 @nthu.edu.tw 結尾之信箱註冊
+                        </p>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="signup-full-name">姓名 <span className="text-red-500">*</span></Label>
@@ -378,57 +367,27 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
                         <Input 
                             id="signup-phone"
                             type="tel"
-                            placeholder="0912345678"
+                            placeholder="您的電話"
                             value={signUpPhone}
                             onChange={(e) => setSignUpPhone(e.target.value)}
                             required
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="signup-department">所屬單位 <span className="text-red-500">*</span></Label>
-                        <Select
-                          value={signUpDepartmentId}
-                          onValueChange={(value) => setSignUpDepartmentId(value)}
-                        >
-                          <SelectTrigger id="signup-department">
-                              <SelectValue placeholder="請選擇所屬單位" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              {departments.map((dept) => (
-                                <SelectItem key={dept.id} value={String(dept.id)}>
-                                  {dept.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
                         <Label htmlFor="signup-user-type">身份別 <span className="text-red-500">*</span></Label>
-                        <Select value={signUpUserType} onValueChange={(value: "teacher" | "staff" | "assistant" | "student") => setSignUpUserType(value)}>
+                        <Select value={signUpUserType} onValueChange={(value: "teacher" | "staff" | "external" | "student") => setSignUpUserType(value)}>
                             <SelectTrigger id="signup-user-type">
                                 <SelectValue placeholder="請選擇身份別" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="teacher">教師</SelectItem>
                                 <SelectItem value="staff">職員</SelectItem>
-                                <SelectItem value="assistant">助理</SelectItem>
+                                <SelectItem value="external">校外人士</SelectItem>
                                 <SelectItem value="student">學生</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    {signUpUserType === 'student' && (
-                        <div className="space-y-2">
-                            <Label htmlFor="signup-supervisor">上司老師 <span className="text-red-500">*</span></Label>
-                            <Input 
-                                id="signup-supervisor"
-                                type="text"
-                                placeholder="請輸入上司老師姓名"
-                                value={signUpSupervisor}
-                                onChange={(e) => setSignUpSupervisor(e.target.value)}
-                                required
-                            />
-                        </div>
-                    )}
+
                     <div className="space-y-2">
                         <Label htmlFor="signup-password">密碼 <span className="text-red-500">*</span></Label>
                         <div className="relative">
@@ -507,7 +466,7 @@ export default function LoginClient({ initialDepartments }: { initialDepartments
                                 <Input 
                                     id="reset-email" 
                                     type="email" 
-                                    placeholder="name@example.com" 
+                                    placeholder="您的信箱" 
                                     value={resetEmail}
                                     onChange={(e) => setResetEmail(e.target.value)}
                                     required

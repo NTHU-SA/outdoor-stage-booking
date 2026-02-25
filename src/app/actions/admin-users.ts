@@ -16,9 +16,7 @@ export type AdminUser = {
   last_sign_in_at: string | null
   full_name: string | null
   user_type: string | null
-  supervisor_name: string | null
   phone: string | null
-  department_name: string | null
 }
 
 // Ensure current user is admin
@@ -52,7 +50,7 @@ export async function getUsers(): Promise<AdminUser[]> {
   // 2. Get all profiles
   const { data: profiles, error: profilesError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, is_approved, full_name, user_type, supervisor_name, phone, department:departments(name)')
+    .select('id, role, is_approved, full_name, user_type, phone')
   
   if (profilesError) throw profilesError
 
@@ -62,9 +60,7 @@ export async function getUsers(): Promise<AdminUser[]> {
     is_approved: boolean | null
     full_name: string | null
     user_type: string | null
-    supervisor_name: string | null
     phone: string | null
-    department?: { name: string } | null
   }
 
   // 3. Merge data (only for verified users)
@@ -79,9 +75,7 @@ export async function getUsers(): Promise<AdminUser[]> {
       last_sign_in_at: user.last_sign_in_at || null,
       full_name: profile?.full_name ?? null,
       user_type: profile?.user_type ?? null,
-      supervisor_name: profile?.supervisor_name ?? null,
-      phone: profile?.phone ?? null,
-      department_name: profile?.department?.name ?? null,
+      phone: profile?.phone ?? null
     }
   })
 
@@ -106,14 +100,14 @@ export async function approveUser(userId: string, email: string) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
       await resend.emails.send({
-        from: '竹師教育學院空間借用系統 <no-reply@will-cheng.com>', // Update this with your verified domain
+        from: '國立清華大學學生會野台借用系統 <no-reply@will-cheng.com>', // Update this with your verified domain
         to: email,
         subject: '您的帳號已通過審核',
         html: `
           <h2>帳號審核通過通知</h2>
           <p>您好：</p>
-          <p>您的空間借用系統帳號已通過管理員審核。</p>
-          <p>您現在可以登入系統進行空間借用了。</p>
+          <p>您的野台借用系統帳號已通過管理員審核。</p>
+          <p>您現在可以登入系統進行野台借用了。</p>
           <p>
             <a href="${appUrl}/login" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">前往登入</a>
           </p>
