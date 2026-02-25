@@ -28,7 +28,7 @@ type Department = {
 export default function LoginClient({ }: { }) {
   const supabase = createClient()
   const router = useRouter()
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const [origin, setOrigin] = useState('')
 
   // Auth View State
   const [authView, setAuthView] = useState<'sign_in' | 'sign_up'>('sign_in')
@@ -58,6 +58,12 @@ export default function LoginClient({ }: { }) {
 
   // Ref to prevent onAuthStateChange from redirecting during signup
   const isSigningUpRef = useRef(false)
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setOrigin(window.location.origin)
+        }
+    }, [])
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -190,6 +196,11 @@ export default function LoginClient({ }: { }) {
           return
       }
 
+      if (!signUpUserType) {
+          toast.error("請選擇身份別")
+          return
+      }
+
       if (signUpPassword !== confirmPassword) {
           toast.error("兩次輸入的密碼不一致")
           return
@@ -202,7 +213,7 @@ export default function LoginClient({ }: { }) {
           // 檢查信箱域名：若非 nthu.edu.tw 或 *.nthu.edu.tw 信箱，自動將身份別設為校外人士
           let finalUserType = signUpUserType
           const emailDomain = signUpEmail.split('@')[1]?.toLowerCase()
-          if (finalUserType !== 'external' && emailDomain !== 'nthu.edu.tw' && !emailDomain.endsWith('.nthu.edu.tw')) {
+          if (finalUserType !== 'external' && emailDomain !== 'nthu.edu.tw' && !(emailDomain?.endsWith('.nthu.edu.tw'))) {
               finalUserType = 'external'
               toast.info('您的信箱非 nthu.edu.tw，身份別已自動設為校外人士')
           }
@@ -220,8 +231,14 @@ export default function LoginClient({ }: { }) {
               }
           })
 
-          if (error) {
-            toast.error(error.message || "註冊失敗，請稍後再試")
+                    if (error) {
+                        const msg = error.message || "註冊失敗，請稍後再試"
+
+                        if (msg.toLowerCase().includes('database error saving new user')) {
+                            toast.error('註冊失敗：資料庫觸發器設定異常，請聯絡管理員執行最新 Supabase migration')
+                        } else {
+                            toast.error(msg)
+                        }
             return
           }
           if (data?.user && data.user.identities && data.user.identities.length === 0) {
@@ -276,6 +293,7 @@ export default function LoginClient({ }: { }) {
                     src="/logo.png" 
                     alt="Logo" 
                     fill
+                          sizes="64px"
                     className="object-contain"
                  />
             </div>

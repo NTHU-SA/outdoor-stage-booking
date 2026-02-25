@@ -48,6 +48,7 @@ export default function RootLayout({
   return (
     <html lang="zh-TW" className="h-full">
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
         <div className="flex-1">

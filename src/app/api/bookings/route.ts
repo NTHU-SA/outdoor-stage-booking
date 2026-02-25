@@ -83,12 +83,17 @@ export async function POST(request: Request) {
     
     const isAdmin = profile?.role === 'admin'
 
-    // Fetch room info first (need room_type for semester lock check)
-    const { data: room } = await supabase
+    // Fetch room info
+    const { data: room, error: roomError } = await supabase
       .from('rooms')
-      .select('unavailable_periods, room_type, is_active')
+      .select('unavailable_periods, is_active')
       .eq('id', body.roomId)
-      .single()
+      .maybeSingle()
+
+    if (roomError) {
+      console.error(roomError)
+      return NextResponse.json({ error: '系統錯誤' }, { status: 500 })
+    }
       
     if (!room) {
       return NextResponse.json({ error: '空間不存在' }, { status: 404 })
@@ -97,8 +102,6 @@ export async function POST(request: Request) {
     if (room.is_active === false && !isAdmin) {
       return NextResponse.json({ error: '此空間已停用' }, { status: 400 })
     }
-
-    const isMeetingRoom = room.room_type === "Meeting"
 
     // Fetch semester settings for date restrictions
     const { data: semesterData } = await supabase
@@ -128,17 +131,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: '借用結束日期超出可預約範圍（4 個月）' }, { status: 400 })
       }
       
-      // 3. Check semester lock for non-admins (skip for Meeting rooms)
-      if (!isMeetingRoom) {
-        const lockedError = iterateDays(startTime, endTime, (day) => {
-          if (isDateInLockedPeriod(day, semesters, false)) {
-            return '下學期課表尚未確認，暫不開放預約'
-          }
-          return null
-        })
-        if (lockedError) {
-          return NextResponse.json({ error: lockedError }, { status: 400 })
+      // 3. Check semester lock for non-admins
+      const lockedError = iterateDays(startTime, endTime, (day) => {
+        if (isDateInLockedPeriod(day, semesters, false)) {
+          return '下學期課表尚未確認，暫不開放預約'
         }
+        return null
+      })
+      if (lockedError) {
+        return NextResponse.json({ error: lockedError }, { status: 400 })
       }
 
     }

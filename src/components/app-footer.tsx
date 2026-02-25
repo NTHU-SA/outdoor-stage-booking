@@ -24,6 +24,7 @@ export function AppFooter() {
                 src="/logo.png"
                 alt="國立清華大學學生會 Logo"
                 fill
+                sizes="160px"
                 className="object-contain"
               />
             </div>
