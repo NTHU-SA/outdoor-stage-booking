@@ -161,13 +161,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2 group-data-[collapsible=icon]:px-0">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground">
-            <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-contain" />
-          </div>
+        <div className="flex items-center px-4 py-2 group-data-[collapsible=icon]:px-0">
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="truncate font-semibold">國立清華大學學生會</span>
-            <span className="truncate text-xs">野台借用系統</span>
+            <div className="relative h-8 w-full">
+              <Image src="/banner.png" alt="國立清華大學學生會" fill sizes="220px" className="object-contain object-left" />
+            </div>
+            <span className="truncate text-xl font-semibold">野台借用系統</span>
           </div>
         </div>
       </SidebarHeader>

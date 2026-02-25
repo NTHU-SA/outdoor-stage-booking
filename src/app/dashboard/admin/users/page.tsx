@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
                 </TableCell>
                 <TableCell>
                   {user.role === 'admin' ? (
-                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
+                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300">
                       管理員
                     </Badge>
                   ) : (
@@ -376,7 +376,7 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="col-span-4 sm:col-span-3">
                      {selectedUser.role === 'admin' ? (
-                      <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
+                      <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300">
                         管理員
                       </Badge>
                     ) : (

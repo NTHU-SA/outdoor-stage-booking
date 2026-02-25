@@ -86,8 +86,8 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
       title: '已選取',
       start: selectedSlot.start,
       end: selectedSlot.end,
-      backgroundColor: '#10b981', // Emerald-500
-      borderColor: '#059669', // Emerald-600
+      backgroundColor: '#d59ae1',
+      borderColor: '#c881d6',
       textColor: 'white',
       display: 'block',
       classNames: ['selected-slot-event'],
