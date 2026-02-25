@@ -28,7 +28,6 @@ type Department = {
 export default function LoginClient({ }: { }) {
   const supabase = createClient()
   const router = useRouter()
-    const [origin, setOrigin] = useState('')
 
   // Auth View State
   const [authView, setAuthView] = useState<'sign_in' | 'sign_up'>('sign_in')
@@ -59,11 +58,12 @@ export default function LoginClient({ }: { }) {
   // Ref to prevent onAuthStateChange from redirecting during signup
   const isSigningUpRef = useRef(false)
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setOrigin(window.location.origin)
+    const getAppOrigin = () => {
+        if (typeof window !== 'undefined' && window.location.origin) {
+            return window.location.origin
         }
-    }, [])
+        return process.env.NEXT_PUBLIC_APP_URL || ''
+    }
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -101,8 +101,9 @@ export default function LoginClient({ }: { }) {
 
     setIsResetting(true)
     try {
+        const redirectTo = `${getAppOrigin()}/auth/callback?next=${encodeURIComponent('/reset-password')}`
         const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-            redirectTo: `${origin}/auth/callback?next=/reset-password`,
+            redirectTo,
         })
 
         if (error) throw error
@@ -120,10 +121,11 @@ export default function LoginClient({ }: { }) {
 
   // 動態計算重定向 URL
   const getRedirectUrl = () => {
-    if (typeof window === 'undefined') return ''
+        const appOrigin = getAppOrigin()
+        if (!appOrigin) return ''
     const params = new URLSearchParams(window.location.search)
     const next = params.get('next') || '/dashboard'
-    return `${origin}/auth/callback?next=${encodeURIComponent(next)}`
+        return `${appOrigin}/auth/callback?next=${encodeURIComponent(next)}`
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
