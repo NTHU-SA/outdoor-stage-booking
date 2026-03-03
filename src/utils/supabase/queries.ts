@@ -67,35 +67,6 @@ export type Booking = {
   user_name?: string // Optional, for admin view
 }
 
-export type MaintenanceRecord = {
-  id: string
-  created_at: string
-  applicant_name: string
-  unit: string
-  location: string
-  description: string
-  status: 'pending' | 'processing' | 'completed' | 'rejected'
-  admin_notes: string | null
-  image_url: string | null
-  is_hidden: boolean
-}
-
-export async function getMaintenanceRecords(): Promise<MaintenanceRecord[]> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from('maintenance_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Error fetching maintenance records:', error)
-    return []
-  }
-
-  return data as MaintenanceRecord[]
-}
-
 export async function getUserBookings(): Promise<Booking[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

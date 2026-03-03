@@ -49,18 +49,7 @@ const items = [
   },
 ]
 
-const reportItems = [
-  {
-    title: "線上填報",
-    url: "/dashboard/report",
-    icon: AlertCircle,
-  },
-  {
-    title: "報修紀錄",
-    url: "/dashboard/report/records",
-    icon: ClipboardList,
-  },
-]
+// removed reportItems
 
 const adminItems = [
   {
@@ -72,11 +61,6 @@ const adminItems = [
     title: "空間管理",
     url: "/dashboard/admin/rooms",
     icon: LayoutDashboard,
-  },
-  {
-    title: "報修系統管理",
-    url: "/dashboard/admin/reports",
-    icon: ClipboardList,
   },
   {
     title: "人員管理",
@@ -198,26 +182,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>報修系統</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {reportItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={pathname === item.url}
-                  >
-                    <a href={item.url} onClick={handleMobileNavClick}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+
 
         {isAdmin && (
           <SidebarGroup>

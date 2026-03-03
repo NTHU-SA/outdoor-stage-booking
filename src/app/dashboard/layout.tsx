@@ -16,8 +16,8 @@ export default async function DashboardLayout({
         <div className="sticky top-0 z-40 flex items-center gap-3 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 px-4 py-3 md:hidden">
           <SidebarTrigger className="size-8" />
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" />
-            <span className="font-semibold text-sm">國立清華大學學生會野台借用系統</span>
+            <Image src="/banner.png" height="200" width="200" alt="Logo" className="object-contain" />
+            <span className="font-semibold text-sm">野台借用系統</span>
           </div>
         </div>
         <div className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">{children}</div>

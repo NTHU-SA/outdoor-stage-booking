@@ -39,9 +39,7 @@ export async function updateSession(request: NextRequest) {
     '/signup-success',
     '/approval-pending',
     '/dashboard/spaces', // Allow viewing spaces
-    '/dashboard/rules',   // Allow viewing rules
-    '/dashboard/report', // Allow access to report form and records
-    '/dashboard/report/records' // Allow viewing maintenance records
+    '/dashboard/rules'   // Allow viewing rules
   ]
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
 
