@@ -7,9 +7,25 @@ export type SemesterSetting = {
   semester_name: string
   start_date: string
   end_date: string
+  max_bookable_months: number
   is_next_semester_open: boolean
   created_at: string
   updated_at: string
+}
+
+export const DEFAULT_MAX_BOOKABLE_MONTHS = 4
+
+export function normalizeMaxBookableMonths(value: number | null | undefined): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return DEFAULT_MAX_BOOKABLE_MONTHS
+  }
+
+  return Math.min(24, Math.max(1, Math.trunc(value)))
+}
+
+export function getMaxBookableMonths(semesters: SemesterSetting[]): number {
+  const configured = semesters.find(s => typeof s.max_bookable_months === 'number')?.max_bookable_months
+  return normalizeMaxBookableMonths(configured)
 }
 
 /**
@@ -24,30 +40,30 @@ export function isSameDay(date1: Date, date2: Date): boolean {
 }
 
 /**
- * Check if a date is within 4 months from today
+ * Check if a date is within allowed months from today
  */
-export function isDateWithin4Months(date: Date): boolean {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const fourMonthsLater = new Date(today)
-  fourMonthsLater.setMonth(fourMonthsLater.getMonth() + 4)
-  
-  const targetDate = new Date(date)
-  targetDate.setHours(0, 0, 0, 0)
-  
-  return targetDate <= fourMonthsLater
-}
-
-/**
- * Get the maximum bookable date (4 months from today)
- */
-export function getMaxBookableDate(): Date {
+export function isDateWithin4Months(date: Date, maxBookableMonths: number = DEFAULT_MAX_BOOKABLE_MONTHS): boolean {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
   const maxDate = new Date(today)
-  maxDate.setMonth(maxDate.getMonth() + 4)
+  maxDate.setMonth(maxDate.getMonth() + normalizeMaxBookableMonths(maxBookableMonths))
+  
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+  
+  return targetDate <= maxDate
+}
+
+/**
+ * Get the maximum bookable date (N months from today)
+ */
+export function getMaxBookableDate(maxBookableMonths: number = DEFAULT_MAX_BOOKABLE_MONTHS): Date {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const maxDate = new Date(today)
+  maxDate.setMonth(maxDate.getMonth() + normalizeMaxBookableMonths(maxBookableMonths))
   
   return maxDate
 }
@@ -177,11 +193,13 @@ export function checkDateRestrictions(
   semesters: SemesterSetting[],
   isAdmin: boolean = false
 ): { isRestricted: boolean; message: string | null } {
+  const maxBookableMonths = getMaxBookableMonths(semesters)
+
   // Check 4-month limit for non-admins
-  if (!isAdmin && !isDateWithin4Months(date)) {
+  if (!isAdmin && !isDateWithin4Months(date, maxBookableMonths)) {
     return {
       isRestricted: true,
-      message: '一般使用者僅能借用未來 4 個月內的日期'
+      message: `一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期`
     }
   }
   

@@ -31,6 +31,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/client"
 import { toast } from "sonner"
@@ -39,6 +40,7 @@ import type { Room } from "@/utils/supabase/queries"
 import { useEffect, useState } from "react"
 import type { SemesterSetting } from "@/utils/semester"
 import { 
+  getMaxBookableMonths,
   isDateWithin4Months, 
   isDateInLockedPeriod, 
   getCurrentSemester,
@@ -58,11 +60,16 @@ type BookingFormProps = {
 export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, semesterSettings = [] }: BookingFormProps) {
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
   const [semesters, setSemesters] = useState<SemesterSetting[]>(semesterSettings)
+
+  const getDefaultBorrowingUnitKey = (userId: string | null) => `defaultBorrowingUnit:${userId ?? 'guest'}`
   
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
+      borrowingUnit: "",
       purpose: "",
       roomId: selectedRoomId || "",
     },
@@ -100,6 +107,13 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     const checkUserRoleAndFetchSemesters = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
+      setCurrentUserId(user?.id ?? null)
+
+      const savedBorrowingUnit = localStorage.getItem(getDefaultBorrowingUnitKey(user?.id ?? null))
+      if (savedBorrowingUnit) {
+        form.setValue("borrowingUnit", savedBorrowingUnit)
+      }
+
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -124,7 +138,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
       }
     }
     checkUserRoleAndFetchSemesters()
-  }, [semesterSettings.length])
+  }, [semesterSettings.length, form])
 
   async function onSubmit(values: BookingFormValues) {
     const startDateTime = new Date(values.startDate)
@@ -150,6 +164,10 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     }
 
     try {
+        if (rememberBorrowingUnit && values.borrowingUnit.trim()) {
+          localStorage.setItem(getDefaultBorrowingUnitKey(currentUserId), values.borrowingUnit.trim())
+        }
+
         const response = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
@@ -157,6 +175,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
             },
             body: JSON.stringify({
                 roomId: values.roomId,
+              borrowingUnit: values.borrowingUnit,
                 startTime: startDateTime.toISOString(),
                 endTime: endDateTime.toISOString(),
                 purpose: values.purpose,
@@ -169,7 +188,12 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
         }
 
         toast.success("預約申請已送出")
-        form.reset()
+        const defaultBorrowingUnit = localStorage.getItem(getDefaultBorrowingUnitKey(currentUserId)) || ""
+        form.reset({
+          roomId: selectedRoomId || "",
+          borrowingUnit: defaultBorrowingUnit,
+          purpose: "",
+        })
         router.push('/dashboard/my-bookings')
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : '預約失敗'
@@ -183,6 +207,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   const currentSemester = getCurrentSemester(semesters)
   const nextSemester = getNextSemester(semesters, currentSemester)
   const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
+  const maxBookableMonths = getMaxBookableMonths(semesters)
 
   // Get selected room's type to determine if semester lock applies
   const watchedRoomId = form.watch("roomId")
@@ -281,7 +306,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                           const minDate = new Date(today)
                           minDate.setDate(today.getDate() + 3)
                           if (date < minDate) return true
-                          if (!isDateWithin4Months(date)) return true
+                          if (!isDateWithin4Months(date, maxBookableMonths)) return true
                           if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                         }
                         return false
@@ -332,7 +357,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                           const minDate = new Date(today)
                           minDate.setDate(today.getDate() + 3)
                           if (date < minDate) return true
-                          if (!isDateWithin4Months(date)) return true
+                          if (!isDateWithin4Months(date, maxBookableMonths)) return true
                           if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                         }
                         // endDate must be >= startDate
@@ -402,6 +427,35 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
               </FormItem>
             )}
           />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="borrowingUnit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>借用單位</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="請輸入借用單位（例：學生會活動部）"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="remember-borrowing-unit"
+            checked={rememberBorrowingUnit}
+            onCheckedChange={(checked) => setRememberBorrowingUnit(checked === true)}
+          />
+          <label htmlFor="remember-borrowing-unit" className="text-sm text-muted-foreground cursor-pointer">
+            設為默認借用單位（下次自動帶入）
+          </label>
         </div>
 
         <FormField

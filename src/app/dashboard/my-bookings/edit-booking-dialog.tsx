@@ -48,6 +48,7 @@ import type { Booking } from "@/utils/supabase/queries"
 import type { SemesterSetting } from "@/utils/semester"
 import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
 import { 
+  getMaxBookableMonths,
   isDateWithin4Months, 
   isDateInLockedPeriod, 
   getCurrentSemester,
@@ -58,6 +59,9 @@ import {
 const bookingFormSchema = z.object({
   roomId: z.string({
     message: "請選擇空間",
+  }),
+  borrowingUnit: z.string().min(1, {
+    message: "請輸入借用單位",
   }),
   startDate: z.date({
     message: "請選擇開始日期",
@@ -109,6 +113,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       roomId: booking.room_id || booking.room?.id || "",
+      borrowingUnit: booking.borrowing_unit || "",
       startDate: new Date(booking.start_time),
       endDate: new Date(booking.end_time),
       startTime: format(new Date(booking.start_time), "HH:mm"),
@@ -123,6 +128,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   useEffect(() => {
     form.reset({
       roomId: booking.room_id || booking.room?.id || "",
+      borrowingUnit: booking.borrowing_unit || "",
       startDate: new Date(booking.start_time),
       endDate: new Date(booking.end_time),
       startTime: format(new Date(booking.start_time), "HH:mm"),
@@ -216,9 +222,10 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
         return
       }
       
-      // Check 4-month limit
-      if (!isDateWithin4Months(startDateTime)) {
-        toast.error("一般使用者僅能借用未來 4 個月內的日期")
+      // Check max-month limit
+      const maxBookableMonths = getMaxBookableMonths(semesters)
+      if (!isDateWithin4Months(startDateTime, maxBookableMonths)) {
+        toast.error(`一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期`)
         setIsLoading(false)
         return
       }
@@ -267,6 +274,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
         },
         body: JSON.stringify({
           roomId: values.roomId,
+          borrowingUnit: values.borrowingUnit,
           startTime: startDateTime.toISOString(),
           endTime: endDateTime.toISOString(),
           purpose: values.purpose,
@@ -301,6 +309,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   const currentSemester = getCurrentSemester(semesters)
   const nextSemester = getNextSemester(semesters, currentSemester)
   const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
+  const maxBookableMonths = getMaxBookableMonths(semesters)
 
   // Get selected room's type to determine if semester lock applies
   const selectedRoomId = form.watch("roomId")
@@ -413,7 +422,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                               const minDate = new Date(today)
                               minDate.setDate(today.getDate() + 3)
                               if (date < minDate) return true
-                              if (!isDateWithin4Months(date)) return true
+                              if (!isDateWithin4Months(date, maxBookableMonths)) return true
                               if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                             }
                             return false
@@ -464,7 +473,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                               const minDate = new Date(today)
                               minDate.setDate(today.getDate() + 3)
                               if (date < minDate) return true
-                              if (!isDateWithin4Months(date)) return true
+                              if (!isDateWithin4Months(date, maxBookableMonths)) return true
                               if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                             }
                             if (watchedStartDate) {
@@ -534,6 +543,24 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="borrowingUnit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>借用單位</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="請輸入借用單位（例：學生會活動部）"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

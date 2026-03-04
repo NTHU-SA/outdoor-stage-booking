@@ -1,5 +1,5 @@
 import { Room } from "@/utils/supabase/queries"
-import { SemesterSetting, isDateWithin4Months, isDateInLockedPeriod, isDateInSemester } from "@/utils/semester"
+import { SemesterSetting, getMaxBookableMonths, isDateWithin4Months, isDateInLockedPeriod, isDateInSemester } from "@/utils/semester"
 
 export type ValidationResult = {
   isValid: boolean
@@ -14,6 +14,8 @@ export function validateBookingRules(
   semesters: SemesterSetting[],
   isAdmin: boolean
 ): ValidationResult {
+  const maxBookableMonths = getMaxBookableMonths(semesters)
+
   const iterateDays = (start: Date, end: Date, cb: (day: Date) => ValidationResult | null): ValidationResult | null => {
     const cursor = new Date(start)
     cursor.setHours(0, 0, 0, 0)
@@ -57,13 +59,13 @@ export function validateBookingRules(
       return { isValid: false, message: "一般使用者需於 3 天前申請" }
     }
     
-    // Check 4-month limit for non-admins
-    if (!isDateWithin4Months(startTime)) {
-      return { isValid: false, message: "一般使用者僅能借用未來 4 個月內的日期" }
+    // Check max-month limit for non-admins
+    if (!isDateWithin4Months(startTime, maxBookableMonths)) {
+      return { isValid: false, message: `一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期` }
     }
 
-    if (!isDateWithin4Months(endTime)) {
-      return { isValid: false, message: "借用結束日期超出可預約範圍（4 個月）" }
+    if (!isDateWithin4Months(endTime, maxBookableMonths)) {
+      return { isValid: false, message: `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）` }
     }
     
     // Check semester lock for non-admins (rules apply to all rooms now)

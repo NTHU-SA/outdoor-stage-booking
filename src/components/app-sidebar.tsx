@@ -20,7 +20,7 @@ import { createClient } from "@/utils/supabase/client"
 import { useRouter, usePathname } from "next/navigation"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -84,11 +84,10 @@ const approverItems = [
 ]
 
 export function AppSidebar() {
-  const { user } = useUser()
+  const { user, loading } = useUser()
   const [isAdmin, setIsAdmin] = useState(false)
   const [isApprover, setIsApprover] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const pathname = usePathname()
   const { setOpenMobile } = useSidebar()
@@ -97,12 +96,6 @@ export function AppSidebar() {
   const handleMobileNavClick = () => {
     setOpenMobile(false)
   }
-
-  // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -227,8 +220,15 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            {mounted ? (
-              user ? (
+            {loading ? (
+              <SidebarMenuButton size="lg" className="cursor-default">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <div className="grid flex-1 gap-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </SidebarMenuButton>
+            ) : user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton
@@ -282,15 +282,6 @@ export function AppSidebar() {
                     <span className="truncate text-xs">點此登入</span>
                   </div>
                 </SidebarMenuButton>
-              )
-            ) : (
-              <SidebarMenuButton size="lg" className="cursor-default">
-                <Skeleton className="h-8 w-8 rounded-lg" />
-                <div className="grid flex-1 gap-1">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
-              </SidebarMenuButton>
             )}
           </SidebarMenuItem>
         </SidebarMenu>

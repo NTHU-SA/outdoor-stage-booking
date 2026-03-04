@@ -32,7 +32,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { 
+  getMaxBookableMonths,
   isDateWithin4Months, 
   isDateInLockedPeriod 
 } from "@/utils/semester"
@@ -50,23 +53,33 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
   const router = useRouter()
   const { user, loading } = useUser() // Check loading state to ensure auth is checked
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [borrowingUnit, setBorrowingUnit] = useState("")
+  const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
   const [purpose, setPurpose] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const getDefaultBorrowingUnitKey = (userId: string | null | undefined) => `defaultBorrowingUnit:${userId ?? 'guest'}`
 
   // Restore booking data from localStorage if available and user is logged in
   useEffect(() => {
     if (loading) return // Wait for auth check
 
+    const savedBorrowingUnit = localStorage.getItem(getDefaultBorrowingUnitKey(user?.id))
+    if (savedBorrowingUnit) {
+      setBorrowingUnit(savedBorrowingUnit)
+    }
+
     const storedBooking = localStorage.getItem(`pendingBooking_${room.id}`)
     if (storedBooking) {
         try {
-            const { start, end, purpose: storedPurpose } = JSON.parse(storedBooking)
+            const { start, end, purpose: storedPurpose, borrowingUnit: storedBorrowingUnit } = JSON.parse(storedBooking)
             const startDate = new Date(start)
             const endDate = new Date(end)
             
             // Only restore if dates are valid
             if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
                 onChange({ start: startDate, end: endDate })
+                if (storedBorrowingUnit) setBorrowingUnit(storedBorrowingUnit)
                 if (storedPurpose) setPurpose(storedPurpose)
                 
                 // If user is logged in, open the dialog automatically to continue
@@ -116,6 +129,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
             const bookingData = {
                 start: selectedSlot.start.toISOString(),
                 end: selectedSlot.end.toISOString(),
+              borrowingUnit,
                 purpose
             }
             localStorage.setItem(`pendingBooking_${room.id}`, JSON.stringify(bookingData))
@@ -130,9 +144,17 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
     }
 
     if (!selectedSlot) return
+    if (borrowingUnit.trim().length < 1) {
+      toast.error("請輸入借用單位")
+      return
+    }
     if (purpose.trim().length < 5) {
       toast.error("事由至少需要 5 個字")
       return
+    }
+
+    if (rememberBorrowingUnit && borrowingUnit.trim()) {
+      localStorage.setItem(getDefaultBorrowingUnitKey(user?.id), borrowingUnit.trim())
     }
 
     setIsSubmitting(true)
@@ -144,6 +166,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
             },
             body: JSON.stringify({
                 roomId: room.id,
+              borrowingUnit,
                 startTime: selectedSlot.start.toISOString(),
                 endTime: selectedSlot.end.toISOString(),
                 purpose: purpose,
@@ -157,6 +180,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
 
         toast.success("預約申請已送出")
         setIsDialogOpen(false)
+        setBorrowingUnit("")
         setPurpose("")
         onChange(null) 
         // Clear any stored booking data just in case
@@ -262,6 +286,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
   const endTimeStr = selectedSlot
     ? format(selectedSlot.end, "HH:mm")
     : ""
+  const maxBookableMonths = getMaxBookableMonths(semesters)
 
   const isMeetingRoom = false
 
@@ -311,8 +336,8 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
                           minDate.setDate(today.getDate() + 3)
                           if (date < minDate) return true
 
-                          // 4-month limit
-                          if (!isDateWithin4Months(date)) return true
+                          // Max-month limit
+                          if (!isDateWithin4Months(date, maxBookableMonths)) return true
 
                           // Semester lock (rules apply to all rooms now)
                           if (isDateInLockedPeriod(date, semesters, false)) return true
@@ -360,7 +385,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
                           const minDate = new Date(today)
                           minDate.setDate(today.getDate() + 3)
                           if (date < minDate) return true
-                          if (!isDateWithin4Months(date)) return true
+                          if (!isDateWithin4Months(date, maxBookableMonths)) return true
                           if (isDateInLockedPeriod(date, semesters, false)) return true
                         }
 
@@ -434,6 +459,25 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="borrowing-unit">借用單位</Label>
+              <Input
+                id="borrowing-unit"
+                placeholder="例如：學生會活動部"
+                value={borrowingUnit}
+                onChange={(e) => setBorrowingUnit(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="remember-borrowing-unit-widget"
+                checked={rememberBorrowingUnit}
+                onCheckedChange={(checked) => setRememberBorrowingUnit(checked === true)}
+              />
+              <Label htmlFor="remember-borrowing-unit-widget" className="text-sm font-normal text-muted-foreground cursor-pointer">
+                設為默認借用單位（下次自動帶入）
+              </Label>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="purpose">借用事由</Label>
               <Textarea

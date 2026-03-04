@@ -37,6 +37,7 @@ export type Booking = {
   end_time: string
   created_at: string
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
+  borrowing_unit?: string | null
   purpose: string | null
   user: {
     full_name: string
@@ -191,6 +192,12 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
         <TableHeader>
           <TableRow>
             <TableHead>申請人</TableHead>
+            <TableHead className="text-left w-[200px]">
+                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
+                    空間
+                    {getSortIcon('room')}
+                </Button>
+            </TableHead>
             <TableHead className="text-left w-[150px]">
                 <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
 
@@ -198,6 +205,7 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                     {getSortIcon('time')}
                 </Button>
             </TableHead>
+            <TableHead className="w-[140px]">借用單位</TableHead>
             <TableHead className="w-[200px]">事由</TableHead>
             <TableHead className="text-left w-[140px]">
                 <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
@@ -240,6 +248,9 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                   <div className="text-xs text-muted-foreground">
                     {format(toTaipeiTime(booking.start_time), "HH:mm")} - {format(toTaipeiTime(booking.end_time), "HH:mm")}
                   </div>
+                </TableCell>
+                <TableCell className="max-w-[140px] truncate" title={booking.borrowing_unit || ''}>
+                  {booking.borrowing_unit || '-'}
                 </TableCell>
                 <TableCell className="max-w-[200px] truncate" title={booking.purpose || ''}>
                   {booking.purpose}

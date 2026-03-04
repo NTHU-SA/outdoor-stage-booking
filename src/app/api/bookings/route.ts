@@ -3,6 +3,7 @@ import { createServiceClient } from '@/utils/supabase/service'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { 
+  getMaxBookableMonths,
   isDateWithin4Months, 
   isDateInLockedPeriod,
   isDateInSemester,
@@ -11,6 +12,7 @@ import {
 
 const createBookingSchema = z.object({
   roomId: z.string().uuid(),
+  borrowingUnit: z.string().min(1),
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
   purpose: z.string().min(1),
@@ -110,6 +112,7 @@ export async function POST(request: Request) {
       .order('start_date', { ascending: true })
     
     const semesters: SemesterSetting[] = semesterData || []
+    const maxBookableMonths = getMaxBookableMonths(semesters)
 
     // 1. Check 3-day advance rule for non-admins
     if (!isAdmin) {
@@ -122,13 +125,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: '一般使用者需於 3 天前申請' }, { status: 400 })
       }
       
-      // 2. Check 4-month limit for non-admins
-      if (!isDateWithin4Months(startTime)) {
-        return NextResponse.json({ error: '一般使用者僅能借用未來 4 個月內的日期' }, { status: 400 })
+      // 2. Check max-month limit for non-admins
+      if (!isDateWithin4Months(startTime, maxBookableMonths)) {
+        return NextResponse.json({ error: `一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期` }, { status: 400 })
       }
 
-      if (!isDateWithin4Months(endTime)) {
-        return NextResponse.json({ error: '借用結束日期超出可預約範圍（4 個月）' }, { status: 400 })
+      if (!isDateWithin4Months(endTime, maxBookableMonths)) {
+        return NextResponse.json({ error: `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）` }, { status: 400 })
       }
       
       // 3. Check semester lock for non-admins
@@ -209,6 +212,7 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         room_id: body.roomId,
+        borrowing_unit: body.borrowingUnit,
         start_time: body.startTime,
         end_time: body.endTime,
         purpose: body.purpose,

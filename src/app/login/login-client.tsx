@@ -1,7 +1,8 @@
 "use client"
 
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useRef, useState } from 'react'
+import type { AuthChangeEvent } from '@supabase/supabase-js'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -26,7 +27,7 @@ type Department = {
 }
 
 export default function LoginClient({ }: { }) {
-  const supabase = createClient()
+    const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   // Auth View State
@@ -66,7 +67,7 @@ export default function LoginClient({ }: { }) {
     }
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
       if (event === 'SIGNED_IN' && !isSigningUpRef.current) {
         const params = new URLSearchParams(window.location.search)
         const next = params.get('next') || '/dashboard'

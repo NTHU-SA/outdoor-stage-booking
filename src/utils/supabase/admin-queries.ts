@@ -2,6 +2,15 @@ import { createClient } from '@/utils/supabase/server'
 import { createServiceClient } from '@/utils/supabase/service'
 import type { Booking } from './queries'
 
+function sanitizeRscString(value: string | null | undefined) {
+  if (typeof value !== 'string') return value
+
+  // Avoid control characters and line separator chars that can break streamed RSC payload parsing.
+  return value
+    .replace(/[\u2028\u2029]/g, '\n')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+}
+
 export type ApprovalStepInfo = {
   id: string
   step_order: number
@@ -42,6 +51,7 @@ export async function getAdminBookings(
       start_time,
       end_time,
       status,
+      borrowing_unit,
       purpose,
       created_at,
       room:rooms (
@@ -106,20 +116,49 @@ export async function getAdminBookings(
       bookings = bookings.map(b => {
         const steps = stepsMap.get(b.id)
         if (steps && steps.length > 0) {
+          const sanitizedSteps = steps.map((step) => ({
+            ...step,
+            label: sanitizeRscString(step.label) ?? null,
+            comment: sanitizeRscString(step.comment) ?? null,
+            approver: step.approver
+              ? {
+                  full_name: sanitizeRscString(step.approver.full_name) ?? null,
+                }
+              : undefined,
+          }))
+
           // Find current pending step
-          const currentStep = steps.find(s => s.status === 'pending')
+          const currentStep = sanitizedSteps.find(s => s.status === 'pending')
           return {
             ...b,
-            approval_steps: steps,
+            approval_steps: sanitizedSteps,
             has_multi_level_approval: true,
             current_approval_label: currentStep?.label || 
-              (steps.every(s => s.status === 'approved' || s.status === 'skipped') ? '全部核准' : null),
+              (sanitizedSteps.every(s => s.status === 'approved' || s.status === 'skipped') ? '全部核准' : null),
           }
         }
         return { ...b, has_multi_level_approval: false }
       })
     }
   }
+
+  // Sanitize all user-editable text fields before returning data to client components.
+  bookings = bookings.map((booking) => ({
+    ...booking,
+    borrowing_unit: sanitizeRscString(booking.borrowing_unit) ?? '',
+    purpose: sanitizeRscString(booking.purpose) ?? '',
+    room: {
+      ...booking.room,
+      name: sanitizeRscString(booking.room.name) ?? '',
+      room_code: sanitizeRscString(booking.room.room_code) ?? null,
+    },
+    user: {
+      ...booking.user,
+      full_name: sanitizeRscString(booking.user.full_name) ?? '',
+      email: sanitizeRscString(booking.user.email) ?? '',
+      student_id: sanitizeRscString(booking.user.student_id) ?? null,
+    },
+  }))
 
   // Apply search filter in memory if needed
   if (filters?.search) {

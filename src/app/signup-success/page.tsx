@@ -13,7 +13,7 @@ function SignupSuccessContent() {
   const email = searchParams.get('email')
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen w-full flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0">
@@ -25,7 +25,7 @@ function SignupSuccessContent() {
             priority
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white/60 to-white/80 dark:from-slate-900/80 dark:via-slate-900/60 dark:to-slate-900/80" />
+        <div className="absolute inset-0 bg-linear-to-br from-white/80 via-white/60 to-white/80 dark:from-slate-900/80 dark:via-slate-900/60 dark:to-slate-900/80" />
       </div>
 
       {/* Main Content */}
@@ -40,7 +40,7 @@ function SignupSuccessContent() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
             <div className="absolute bottom-6 left-6 sm:left-10 z-10 text-white">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
                 註冊成功！
@@ -82,7 +82,7 @@ function SignupSuccessContent() {
             <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
               {/* Step 1 */}
               <div className="flex gap-4 p-6 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
                     <Mail className="h-6 w-6 text-white" />
                   </div>
@@ -99,7 +99,7 @@ function SignupSuccessContent() {
 
               {/* Step 2 */}
               <div className="flex gap-4 p-6 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                     <CheckCircle2 className="h-6 w-6 text-white" />
                   </div>
@@ -117,7 +117,7 @@ function SignupSuccessContent() {
 
             {/* Info Message */}
             <div className="flex items-start gap-4 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl max-w-2xl mx-auto">
-              <CheckCircle2 className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="h-6 w-6 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
                   驗證後即可使用
@@ -172,7 +172,7 @@ function SignupSuccessContent() {
 export default function SignupSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <div className="min-h-screen w-full flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 dark:border-slate-100 mx-auto"></div>
           <p className="mt-4 text-slate-600 dark:text-slate-400">載入中...</p>

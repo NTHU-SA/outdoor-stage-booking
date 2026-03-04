@@ -12,6 +12,13 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Calendar } from "@/components/ui/calendar"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -20,8 +27,8 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 import type { SemesterSetting } from "@/utils/semester"
-import { getCurrentSemester, getNextSemester, getMaxBookableDate } from "@/utils/semester"
-import { updateSemesterSettings, toggleNextSemesterOpen } from "@/app/actions/admin-settings"
+import { getCurrentSemester, getNextSemester, getMaxBookableDate, getMaxBookableMonths } from "@/utils/semester"
+import { updateMaxBookableMonths, updateSemesterSettings, toggleNextSemesterOpen } from "@/app/actions/admin-settings"
 
 type SettingsClientProps = {
   initialSemesters: SemesterSetting[]
@@ -30,10 +37,11 @@ type SettingsClientProps = {
 export function SettingsClient({ initialSemesters }: SettingsClientProps) {
   const [semesters, setSemesters] = useState(initialSemesters)
   const [saving, setSaving] = useState<string | null>(null)
+  const [maxBookableMonths, setMaxBookableMonths] = useState(getMaxBookableMonths(initialSemesters))
 
   const currentSemester = getCurrentSemester(semesters)
   const nextSemester = getNextSemester(semesters, currentSemester)
-  const maxBookableDate = getMaxBookableDate()
+  const maxBookableDate = getMaxBookableDate(maxBookableMonths)
 
   const handleDateChange = async (semesterId: string, field: 'start_date' | 'end_date', date: Date | undefined) => {
     if (!date) return
@@ -69,6 +77,26 @@ export function SettingsClient({ initialSemesters }: SettingsClientProps) {
       ))
       
       toast.success(currentValue ? '已關閉下學期借用' : '已開放下學期借用')
+    } catch (error) {
+      toast.error('更新失敗')
+      console.error(error)
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  const handleMaxMonthsChange = async (value: string) => {
+    const parsed = Number(value)
+    if (Number.isNaN(parsed)) return
+
+    setSaving('max_bookable_months')
+    try {
+      await updateMaxBookableMonths(parsed)
+
+      setMaxBookableMonths(parsed)
+      setSemesters(prev => prev.map(s => ({ ...s, max_bookable_months: parsed })))
+
+      toast.success('最長可預約月份已更新')
     } catch (error) {
       toast.error('更新失敗')
       console.error(error)
@@ -134,11 +162,11 @@ export function SettingsClient({ initialSemesters }: SettingsClientProps) {
               </p>
             </div>
 
-            {/* 4 Month Limit */}
+            {/* Max Bookable Months */}
             <div className="rounded-lg border p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary">
-                  4 個月限制
+                  {maxBookableMonths} 個月限制
                 </Badge>
               </div>
               <p className="font-semibold">
@@ -167,6 +195,40 @@ export function SettingsClient({ initialSemesters }: SettingsClientProps) {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Booking Month Limit Setting */}
+      <Card>
+        <CardHeader>
+          <CardTitle>最長可借用月份</CardTitle>
+          <CardDescription>
+            設定一般使用者最多可提前借用的月份數
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="max-w-xs space-y-2">
+            <Label htmlFor="max-bookable-months">可提前借用月份</Label>
+            <Select
+              value={String(maxBookableMonths)}
+              onValueChange={handleMaxMonthsChange}
+              disabled={saving === 'max_bookable_months'}
+            >
+              <SelectTrigger id="max-bookable-months">
+                <SelectValue placeholder="請選擇月份" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 24 }, (_, index) => index + 1).map((month) => (
+                  <SelectItem key={month} value={String(month)}>
+                    {month} 個月
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            目前設定：一般使用者可預約未來 {maxBookableMonths} 個月內的日期。
+          </p>
         </CardContent>
       </Card>
 
@@ -293,7 +355,7 @@ export function SettingsClient({ initialSemesters }: SettingsClientProps) {
           <div className="space-y-2">
             <p className="font-medium text-foreground">一般使用者限制：</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>僅能預約未來 4 個月內的日期</li>
+              <li>僅能預約未來 {maxBookableMonths} 個月內的日期</li>
               <li>需於 7 天前申請預約</li>
               <li>每次預約僅能借用單日（不能跨日連續借用）</li>
               <li>下學期課表確認前，無法預約下學期的空間</li>
@@ -302,7 +364,7 @@ export function SettingsClient({ initialSemesters }: SettingsClientProps) {
           <div className="space-y-2">
             <p className="font-medium text-foreground">管理員：</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>不受 4 個月限制</li>
+              <li>不受最多可借用月份限制</li>
               <li>不受 7 天前申請限制</li>
               <li>可在下學期鎖定期間預約</li>
             </ul>

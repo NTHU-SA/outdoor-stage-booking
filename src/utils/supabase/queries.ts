@@ -62,6 +62,7 @@ export type Booking = {
   start_time: string
   end_time: string
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
+  borrowing_unit?: string | null
   purpose: string
   created_at: string
   user_name?: string // Optional, for admin view
@@ -81,6 +82,7 @@ export async function getUserBookings(): Promise<Booking[]> {
       start_time,
       end_time,
       status,
+      borrowing_unit,
       purpose,
       created_at,
       room:rooms (

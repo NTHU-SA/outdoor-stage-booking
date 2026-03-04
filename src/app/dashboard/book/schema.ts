@@ -4,6 +4,9 @@ export const bookingFormSchema = z.object({
   roomId: z.string({
     message: "請選擇空間",
   }),
+  borrowingUnit: z.string().min(1, {
+    message: "請輸入借用單位",
+  }),
   startDate: z.date({
     message: "請選擇開始日期",
   }),

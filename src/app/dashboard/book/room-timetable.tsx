@@ -135,6 +135,11 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
         views={{
+          dayGridMonth: {
+            dayHeaderFormat: {
+              weekday: 'short',
+            },
+          },
           timeGridWeek: {
             type: 'timeGrid',
             duration: { days: 7 },
@@ -176,7 +181,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
         contentHeight="auto"
         dayMaxEvents={true}
         weekends={true}
-        firstDay={new Date().getDay()} // Set first day to today dynamically
+        firstDay={1} // Monday
         expandRows={true}
         stickyHeaderDates={true}
         eventDisplay="block"
