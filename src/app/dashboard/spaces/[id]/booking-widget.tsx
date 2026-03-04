@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import { toast } from "sonner"
 import type { Room } from "@/utils/supabase/queries"
 import type { SemesterSetting } from "@/utils/semester"
 import { validateBookingRules, generateTimeSlots } from "@/app/dashboard/book/utils"
+import { getOtherAreaBookingsDuring, type OtherAreaBookingStatus } from "@/app/actions/bookings"
 import { 
   Select,
   SelectContent,
@@ -57,6 +59,8 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
   const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
   const [purpose, setPurpose] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [otherAreaBookings, setOtherAreaBookings] = useState<OtherAreaBookingStatus[]>([])
+  const [loadingOtherAreaBookings, setLoadingOtherAreaBookings] = useState(false)
 
   const getDefaultBorrowingUnitKey = (userId: string | null | undefined) => `defaultBorrowingUnit:${userId ?? 'guest'}`
 
@@ -96,6 +100,29 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
         }
     }
   }, [user, loading, room.id, onChange])
+
+  useEffect(() => {
+    const fetchOtherAreaBookings = async () => {
+      if (!isDialogOpen || !selectedSlot) return
+
+      setLoadingOtherAreaBookings(true)
+      try {
+        const data = await getOtherAreaBookingsDuring(
+          room.id,
+          selectedSlot.start.toISOString(),
+          selectedSlot.end.toISOString()
+        )
+        setOtherAreaBookings(data)
+      } catch (error) {
+        console.error('Failed to fetch other area bookings:', error)
+        setOtherAreaBookings([])
+      } finally {
+        setLoadingOtherAreaBookings(false)
+      }
+    }
+
+    fetchOtherAreaBookings()
+  }, [isDialogOpen, selectedSlot, room.id])
 
   const handleReserveClick = () => {
     // Removed user check here to allow guests to click reserve and enter details
@@ -459,6 +486,31 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>同時段其他野台區域借用狀況</Label>
+              <div className="rounded-md border p-3 space-y-2 max-h-44 overflow-y-auto">
+                {loadingOtherAreaBookings ? (
+                  <p className="text-sm text-muted-foreground">載入中...</p>
+                ) : otherAreaBookings.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">此時段其他區域目前無借用</p>
+                ) : (
+                  otherAreaBookings.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{item.roomName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(item.start, "MM/dd HH:mm")} - {format(item.end, "MM/dd HH:mm")}
+                        </p>
+                      </div>
+                      <Badge variant={item.status === 'approved' ? 'default' : 'secondary'} className={item.status === 'approved' ? 'bg-red-600' : 'bg-yellow-100 text-yellow-800'}>
+                        {item.status === 'approved' ? '已核准' : '審核中'}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="borrowing-unit">借用單位</Label>
               <Input

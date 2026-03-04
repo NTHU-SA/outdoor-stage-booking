@@ -15,6 +15,24 @@ type BookingRow = {
   } | null
 }
 
+type OtherAreaBookingRow = {
+  id: string
+  start_time: string
+  end_time: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
+  room: {
+    name: string
+  } | null
+}
+
+export type OtherAreaBookingStatus = {
+  id: string
+  roomName: string
+  start: Date
+  end: Date
+  status: 'pending' | 'approved'
+}
+
 export async function getRoomBookings(roomId: string, excludeBookingId?: string): Promise<TimetableEvent[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -95,5 +113,139 @@ export async function getRoomBookings(roomId: string, excludeBookingId?: string)
       details: isAdmin ? details : undefined
     }
   })
+}
+
+export type AllRoomBookingEvent = TimetableEvent & {
+  roomId: string
+  roomName: string
+}
+
+export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let isAdmin = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    isAdmin = profile?.role === 'admin'
+  }
+
+  // Fetch all active rooms
+  const { data: rooms } = await supabase
+    .from('rooms')
+    .select('id, name')
+    .eq('is_active', true)
+
+  if (!rooms || rooms.length === 0) return []
+
+  // Fetch all non-cancelled bookings across all rooms (future only)
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      id,
+      room_id,
+      start_time,
+      end_time,
+      status,
+      purpose,
+      profiles:user_id (
+        full_name,
+        username
+      )
+    `)
+    .in('status', ['pending', 'approved'])
+    .gte('end_time', new Date().toISOString())
+
+  if (error || !data) {
+    if (error) console.error('Error fetching all bookings:', error)
+    return []
+  }
+
+  const roomMap = new Map(rooms.map(r => [r.id, r.name]))
+
+  type AllBookingRow = BookingRow & { room_id: string }
+  const bookings = data as unknown as AllBookingRow[]
+
+  return bookings
+    .filter(b => roomMap.has(b.room_id))
+    .map((booking) => {
+      const roomName = roomMap.get(booking.room_id) || '未命名空間'
+      let title = ''
+      let details = ''
+
+      if (isAdmin) {
+        const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
+        title = `[${roomName}] ${userName} - ${booking.purpose}`
+        details = `空間: ${roomName}\n借用人: ${userName}\n事由: ${booking.purpose}\n狀態: ${booking.status === 'approved' ? '已核准' : '待審核'}`
+      } else {
+        if (booking.status === 'approved') {
+          if (user) {
+            const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
+            title = `[${roomName}] ${userName} 預約`
+          } else {
+            title = `[${roomName}] 已預約`
+          }
+        } else if (booking.status === 'pending') {
+          title = `[${roomName}] 審核中`
+        }
+      }
+
+      return {
+        id: booking.id,
+        title,
+        start: new Date(booking.start_time),
+        end: new Date(booking.end_time),
+        status: booking.status,
+        details: isAdmin ? details : undefined,
+        roomId: booking.room_id,
+        roomName,
+      }
+    })
+}
+
+export async function getOtherAreaBookingsDuring(
+  currentRoomId: string,
+  startIso: string,
+  endIso: string
+): Promise<OtherAreaBookingStatus[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      id,
+      start_time,
+      end_time,
+      status,
+      room:rooms (
+        name
+      )
+    `)
+    .neq('room_id', currentRoomId)
+    .in('status', ['pending', 'approved'])
+    .filter('start_time', 'lt', endIso)
+    .filter('end_time', 'gt', startIso)
+    .order('start_time', { ascending: true })
+
+  if (error || !data) {
+    if (error) {
+      console.error('Error fetching other area bookings:', error)
+    }
+    return []
+  }
+
+  return (data as unknown as OtherAreaBookingRow[])
+    .filter((row) => row.room?.name)
+    .map((row) => ({
+      id: row.id,
+      roomName: row.room?.name || '未命名空間',
+      start: new Date(row.start_time),
+      end: new Date(row.end_time),
+      status: row.status as 'pending' | 'approved',
+    }))
 }
 
