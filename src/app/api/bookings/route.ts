@@ -114,18 +114,61 @@ export async function POST(request: Request) {
     const semesters: SemesterSetting[] = semesterData || []
     const maxBookableMonths = getMaxBookableMonths(semesters)
 
-    // 1. Check 3-day advance rule for non-admins
+    // 1. Check booking time is within allowed hours (08:00 - 22:00)
+    if (!isAdmin) {
+      const startHour = startTime.getHours()
+      const startMin = startTime.getMinutes()
+      const endHour = endTime.getHours()
+      const endMin = endTime.getMinutes()
+      
+      const startMins = startHour * 60 + startMin
+      const endMins = endHour * 60 + endMin
+      
+      const allowedStart = 8 * 60 // 08:00
+      const allowedEnd = 22 * 60 // 22:00
+      
+      if (startMins < allowedStart || startMins >= allowedEnd) {
+        return NextResponse.json({ error: '借用時段為每日 8:00 至 22:00' }, { status: 400 })
+      }
+      
+      if (endMins <= allowedStart || endMins > allowedEnd) {
+        return NextResponse.json({ error: '借用時段為每日 8:00 至 22:00' }, { status: 400 })
+      }
+    }
+
+    // 2. Check total duration does not exceed 4 hours per day
+    if (!isAdmin) {
+      const durationMs = endTime.getTime() - startTime.getTime()
+      const durationHours = durationMs / (1000 * 60 * 60)
+      if (durationHours > 4) {
+        return NextResponse.json({ error: '一日最多借用 4 小時' }, { status: 400 })
+      }
+    }
+
+    // 3. Check advance booking rule (1 day to 30 days before) for non-admins
     if (!isAdmin) {
       const today = new Date()
       const minDate = new Date()
-      minDate.setDate(today.getDate() + 3)
+      minDate.setDate(today.getDate() + 1)
       minDate.setHours(0, 0, 0, 0) 
       
       if (startTime < minDate) {
-        return NextResponse.json({ error: '一般使用者需於 3 天前申請' }, { status: 400 })
+        return NextResponse.json({ error: '須於借用日前 1 日提出申請' }, { status: 400 })
+      }
+
+      const maxDate = new Date()
+      maxDate.setDate(today.getDate() + 30)
+      maxDate.setHours(23, 59, 59, 999)
+
+      if (startTime > maxDate) {
+        return NextResponse.json({ error: '最多僅能預約未來 30 天內的日期' }, { status: 400 })
+      }
+
+      if (endTime > maxDate) {
+        return NextResponse.json({ error: '借用結束日期超出可預約範圍（30 天）' }, { status: 400 })
       }
       
-      // 2. Check max-month limit for non-admins
+      // 4. Check max-month limit for non-admins
       if (!isDateWithin4Months(startTime, maxBookableMonths)) {
         return NextResponse.json({ error: `一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期` }, { status: 400 })
       }
@@ -134,7 +177,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）` }, { status: 400 })
       }
       
-      // 3. Check semester lock for non-admins
+      // 5. Check semester lock for non-admins
       const lockedError = iterateDays(startTime, endTime, (day) => {
         if (isDateInLockedPeriod(day, semesters, false)) {
           return '下學期課表尚未確認，暫不開放預約'
@@ -201,11 +244,8 @@ export async function POST(request: Request) {
     }
 
     // Create booking
-    // Auto-approve if duration ≤ 14 days; require manual review if > 14 days
-    const durationMs = endTime.getTime() - startTime.getTime()
-    const durationDays = durationMs / (1000 * 60 * 60 * 24)
-    const autoApprove = durationDays <= 14
-    const bookingStatus = isAdmin ? 'approved' : (autoApprove ? 'approved' : 'pending')
+    // All non-admin bookings go to pending, admin bookings are auto-approved
+    const bookingStatus = isAdmin ? 'approved' : 'pending'
 
     const { data: booking, error: createError } = await supabase
       .from('bookings')

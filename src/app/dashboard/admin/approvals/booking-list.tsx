@@ -13,8 +13,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ActionButtons } from "./action-buttons"
 import { useState, useEffect } from "react"
-import { toTaipeiTime } from "@/lib/utils"
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { toTaipeiTime, hasSocketUsage, stripSocketTag } from "@/lib/utils"
+import { ArrowUpDown, ArrowUp, ArrowDown, Plug } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BookingDetailDialog } from "./booking-detail-dialog"
 
@@ -42,6 +42,7 @@ export type Booking = {
   user: {
     full_name: string
     student_id: string | null
+    email?: string
   }
   room: {
     name: string
@@ -62,7 +63,7 @@ type SortOrder = 'asc' | 'desc' | null
 export function BookingList({ initialBookings, showHistory }: BookingListProps) {
   const [bookings, setBookings] = useState(initialBookings)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
-  
+
   // Sorting state
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortOrder, setSortOrder] = useState<SortOrder>(null)
@@ -75,17 +76,17 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
     if (action === 'delete') {
       setBookings(prev => prev.filter(b => b.id !== id))
     } else {
-        // Update status for approve/reject without removing unless filtered out by page reload
-        // Since the page might not reload immediately, we can optimistically update
-        setBookings(prev => prev.map(b => {
-            if (b.id === id) {
-                return { 
-                    ...b, 
-                    status: action === 'approve' ? 'approved' : 'rejected' 
-                }
-            }
-            return b
-        }))
+      // Update status for approve/reject without removing unless filtered out by page reload
+      // Since the page might not reload immediately, we can optimistically update
+      setBookings(prev => prev.map(b => {
+        if (b.id === id) {
+          return {
+            ...b,
+            status: action === 'approve' ? 'approved' : 'rejected'
+          }
+        }
+        return b
+      }))
     }
   }
 
@@ -154,7 +155,7 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
       // First, sort by status: pending first
       if (a.status === 'pending' && b.status !== 'pending') return -1
       if (a.status !== 'pending' && b.status === 'pending') return 1
-      
+
       // If same status, sort by start_time descending (near time first)
       const timeA = new Date(a.start_time).getTime()
       const timeB = new Date(b.start_time).getTime()
@@ -193,25 +194,25 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
           <TableRow>
             <TableHead>申請人</TableHead>
             <TableHead className="text-left w-[200px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
-                    空間
-                    {getSortIcon('room')}
-                </Button>
+              <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
+                空間
+                {getSortIcon('room')}
+              </Button>
             </TableHead>
             <TableHead className="text-left w-[150px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
+              <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
 
-                    時間
-                    {getSortIcon('time')}
-                </Button>
+                時間
+                {getSortIcon('time')}
+              </Button>
             </TableHead>
             <TableHead className="w-[140px]">借用單位</TableHead>
             <TableHead className="w-[200px]">事由</TableHead>
             <TableHead className="text-left w-[140px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
-                    申請時間
-                    {getSortIcon('created_at')}
-                </Button>
+              <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
+                申請時間
+                {getSortIcon('created_at')}
+              </Button>
             </TableHead>
             <TableHead className="w-[100px]">狀態</TableHead>
             <TableHead className="text-right w-[140px]">操作</TableHead>
@@ -226,8 +227,8 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
             </TableRow>
           ) : (
             sortedBookings.map((booking) => (
-              <TableRow 
-                key={booking.id} 
+              <TableRow
+                key={booking.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => setSelectedBooking(booking)}
               >
@@ -252,8 +253,15 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                 <TableCell className="max-w-[140px] truncate" title={booking.borrowing_unit || ''}>
                   {booking.borrowing_unit || '-'}
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={booking.purpose || ''}>
-                  {booking.purpose}
+                <TableCell className="max-w-[200px]" title={stripSocketTag(booking.purpose)}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate">{stripSocketTag(booking.purpose)}</span>
+                    {hasSocketUsage(booking.purpose) && (
+                      <span title="需要使用插座" className="shrink-0">
+                        <Plug className="h-3.5 w-3.5 text-emerald-600" />
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground text-left">
                   {format(toTaipeiTime(booking.created_at), "MM/dd HH:mm")}
@@ -263,11 +271,11 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                 </TableCell>
                 <TableCell className="text-right w-[140px] pl-2">
                   <div onClick={(e) => e.stopPropagation()}>
-                    <ActionButtons 
-                        bookingId={booking.id} 
-                        status={booking.status}
-                        hasMultiLevelApproval={booking.has_multi_level_approval}
-                        onSuccess={(action) => handleActionSuccess(booking.id, action)}
+                    <ActionButtons
+                      bookingId={booking.id}
+                      status={booking.status}
+                      hasMultiLevelApproval={booking.has_multi_level_approval}
+                      onSuccess={(action) => handleActionSuccess(booking.id, action)}
                     />
                   </div>
                 </TableCell>
@@ -277,9 +285,9 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
         </TableBody>
       </Table>
 
-      <BookingDetailDialog 
-        booking={selectedBooking} 
-        open={!!selectedBooking} 
+      <BookingDetailDialog
+        booking={selectedBooking}
+        open={!!selectedBooking}
         onOpenChange={(open) => !open && setSelectedBooking(null)}
         onActionSuccess={handleActionSuccess}
       />

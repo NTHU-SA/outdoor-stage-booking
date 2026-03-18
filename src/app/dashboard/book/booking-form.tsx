@@ -39,15 +39,15 @@ import { useRouter } from "next/navigation"
 import type { Room } from "@/utils/supabase/queries"
 import { useEffect, useState } from "react"
 import type { SemesterSetting } from "@/utils/semester"
-import { 
+import {
   getMaxBookableMonths,
-  isDateWithin4Months, 
-  isDateInLockedPeriod, 
+  isDateWithin4Months,
+  isDateInLockedPeriod,
   getCurrentSemester,
   getNextSemester,
 } from "@/utils/semester"
 import { bookingFormSchema, BookingFormValues } from "./schema"
-import { validateBookingRules, generateTimeSlots } from "./utils"
+import { validateBookingRules, generateTimeSlots, MIN_ADVANCE_DAYS, MAX_ADVANCE_DAYS } from "./utils"
 
 type BookingFormProps = {
   rooms: Room[]
@@ -62,10 +62,11 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   const [isAdmin, setIsAdmin] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
+  const [useSocket, setUseSocket] = useState(false)
   const [semesters, setSemesters] = useState<SemesterSetting[]>(semesterSettings)
 
   const getDefaultBorrowingUnitKey = (userId: string | null) => `defaultBorrowingUnit:${userId ?? 'guest'}`
-  
+
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
@@ -81,25 +82,25 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   // Sync form roomId with prop change
   useEffect(() => {
     if (selectedRoomId) {
-        form.setValue("roomId", selectedRoomId)
+      form.setValue("roomId", selectedRoomId)
     }
   }, [selectedRoomId, form])
 
   // Sync form date/time with prefillSlot
   useEffect(() => {
     if (prefillSlot) {
-        form.setValue("startDate", prefillSlot.start)
-        form.setValue("endDate", prefillSlot.end)
-        
-        const startHour = prefillSlot.start.getHours()
-        const startMinute = prefillSlot.start.getMinutes()
-        const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`
-        form.setValue("startTime", startTime)
+      form.setValue("startDate", prefillSlot.start)
+      form.setValue("endDate", prefillSlot.end)
 
-        const endHour = prefillSlot.end.getHours()
-        const endMinute = prefillSlot.end.getMinutes()
-        const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`
-        form.setValue("endTime", endTime)
+      const startHour = prefillSlot.start.getHours()
+      const startMinute = prefillSlot.start.getMinutes()
+      const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`
+      form.setValue("startTime", startTime)
+
+      const endHour = prefillSlot.end.getHours()
+      const endMinute = prefillSlot.end.getMinutes()
+      const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`
+      form.setValue("endTime", endTime)
     }
   }, [prefillSlot, form])
 
@@ -124,14 +125,14 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
           setIsAdmin(true)
         }
       }
-      
+
       // Fetch semester settings if not provided as props
       if (semesterSettings.length === 0) {
         const { data: semesterData } = await supabase
           .from('semester_settings')
           .select('*')
           .order('start_date', { ascending: true })
-        
+
         if (semesterData) {
           setSemesters(semesterData)
         }
@@ -144,17 +145,17 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     const startDateTime = new Date(values.startDate)
     const [startHour, startMinute] = values.startTime.split(':').map(Number)
     startDateTime.setHours(startHour, startMinute, 0, 0)
-    
+
     const endDateTime = new Date(values.endDate)
     const [endHour, endMinute] = values.endTime.split(':').map(Number)
     endDateTime.setHours(endHour, endMinute, 0, 0)
 
     const validation = validateBookingRules(
-      startDateTime, 
-      endDateTime, 
-      values.roomId, 
-      rooms, 
-      semesters, 
+      startDateTime,
+      endDateTime,
+      values.roomId,
+      rooms,
+      semesters,
       isAdmin
     )
 
@@ -164,40 +165,40 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     }
 
     try {
-        if (rememberBorrowingUnit && values.borrowingUnit.trim()) {
-          localStorage.setItem(getDefaultBorrowingUnitKey(currentUserId), values.borrowingUnit.trim())
-        }
+      if (rememberBorrowingUnit && values.borrowingUnit.trim()) {
+        localStorage.setItem(getDefaultBorrowingUnitKey(currentUserId), values.borrowingUnit.trim())
+      }
 
-        const response = await fetch('/api/bookings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                roomId: values.roomId,
-              borrowingUnit: values.borrowingUnit,
-                startTime: startDateTime.toISOString(),
-                endTime: endDateTime.toISOString(),
-                purpose: values.purpose,
-            }),
-        })
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: values.roomId,
+          borrowingUnit: values.borrowingUnit,
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
+          purpose: values.purpose.trim() + (useSocket ? "\n(需要使用插座)" : ""),
+        }),
+      })
 
-        if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || '預約失敗')
-        }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '預約失敗')
+      }
 
-        toast.success("預約申請已送出")
-        const defaultBorrowingUnit = localStorage.getItem(getDefaultBorrowingUnitKey(currentUserId)) || ""
-        form.reset({
-          roomId: selectedRoomId || "",
-          borrowingUnit: defaultBorrowingUnit,
-          purpose: "",
-        })
-        router.push('/dashboard/my-bookings')
+      toast.success("預約申請已送出")
+      const defaultBorrowingUnit = localStorage.getItem(getDefaultBorrowingUnitKey(currentUserId)) || ""
+      form.reset({
+        roomId: selectedRoomId || "",
+        borrowingUnit: defaultBorrowingUnit,
+        purpose: "",
+      })
+      router.push('/dashboard/my-bookings')
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : '預約失敗'
-        toast.error(message)
+      const message = error instanceof Error ? error.message : '預約失敗'
+      toast.error(message)
     }
   }
 
@@ -211,7 +212,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
 
   // Get selected room's type to determine if semester lock applies
   const watchedRoomId = form.watch("roomId")
-  
+
   // Previously checked for "Meeting" type. Since room types are removed, we default to false (enforce rules)
   const isMeetingRoom = false
 
@@ -241,11 +242,11 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
           render={({ field }) => (
             <FormItem>
               <FormLabel>選擇空間</FormLabel>
-              <Select 
+              <Select
                 onValueChange={(val) => {
-                    field.onChange(val)
-                    onRoomChange?.(val)
-                }} 
+                  field.onChange(val)
+                  onRoomChange?.(val)
+                }}
                 defaultValue={field.value}
                 value={field.value}
               >
@@ -257,7 +258,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                 <SelectContent>
                   {rooms.map((room) => (
                     <SelectItem key={room.id} value={room.id}>
-                       {room.name}
+                      {room.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -304,8 +305,11 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                         if (date < today) return true
                         if (!isAdmin) {
                           const minDate = new Date(today)
-                          minDate.setDate(today.getDate() + 3)
+                          minDate.setDate(today.getDate() + MIN_ADVANCE_DAYS)
                           if (date < minDate) return true
+                          const maxDate = new Date(today)
+                          maxDate.setDate(today.getDate() + MAX_ADVANCE_DAYS)
+                          if (date > maxDate) return true
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
                           if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                         }
@@ -355,8 +359,11 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                         if (date < today) return true
                         if (!isAdmin) {
                           const minDate = new Date(today)
-                          minDate.setDate(today.getDate() + 3)
+                          minDate.setDate(today.getDate() + MIN_ADVANCE_DAYS)
                           if (date < minDate) return true
+                          const maxDate = new Date(today)
+                          maxDate.setDate(today.getDate() + MAX_ADVANCE_DAYS)
+                          if (date > maxDate) return true
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
                           if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                         }
@@ -475,6 +482,17 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
             </FormItem>
           )}
         />
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="use-socket-booking-form"
+            checked={useSocket}
+            onCheckedChange={(checked) => setUseSocket(checked === true)}
+          />
+          <label htmlFor="use-socket-booking-form" className="text-sm font-semibold text-emerald-700 cursor-pointer">
+            需要使用插座
+          </label>
+        </div>
 
         <Button type="submit">提交申請</Button>
       </form>

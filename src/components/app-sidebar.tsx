@@ -116,7 +116,7 @@ export function AppSidebar() {
         .select('role')
         .eq('id', user.id)
         .single()
-      
+
       setIsAdmin(profile?.role === 'admin')
 
       // Check if user is an approver for any room
@@ -125,7 +125,7 @@ export function AppSidebar() {
         .select('id')
         .eq('user_id', user.id)
         .limit(1)
-      
+
       setIsApprover(!!approverRoles && approverRoles.length > 0)
     }
 
@@ -146,7 +146,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center px-4 py-2 group-data-[collapsible=icon]:px-0">
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-            <div className="relative h-8 w-full">
+            <div className="relative h-8 w-full mb-3">
               <Image src="/banner.png" alt="國立清華大學學生會" fill sizes="220px" className="object-contain object-left" />
             </div>
             <span className="truncate text-xl font-semibold">野台借用系統</span>
@@ -165,8 +165,8 @@ export function AppSidebar() {
                 })
                 .map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
+                    <SidebarMenuButton
+                      asChild
                       isActive={pathname === item.url}
                       className={item.highlight ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50" : ""}
                     >
@@ -176,7 +176,7 @@ export function AppSidebar() {
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-              ))}
+                ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -235,12 +235,33 @@ export function AppSidebar() {
                 </div>
               </SidebarMenuButton>
             ) : user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton
-                      size="lg"
-                      className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                    >
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
+                      <span className="truncate text-xs">{user?.email || ''}</span>
+                    </div>
+                    <User className="ml-auto size-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                  side="bottom"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuItem
+                    className="p-0 font-normal focus:bg-transparent"
+                    onClick={() => router.push("/dashboard/profile")}
+                  >
+                    <div className="flex w-full cursor-pointer items-center gap-2 px-1 py-1.5 text-left text-sm">
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                       </Avatar>
@@ -248,46 +269,25 @@ export function AppSidebar() {
                         <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
                         <span className="truncate text-xs">{user?.email || ''}</span>
                       </div>
-                      <User className="ml-auto size-4" />
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                    side="bottom"
-                    align="end"
-                    sideOffset={4}
-                  >
-                    <DropdownMenuItem
-                      className="p-0 font-normal focus:bg-transparent"
-                      onClick={() => router.push("/dashboard/profile")}
-                    >
-                      <div className="flex w-full cursor-pointer items-center gap-2 px-1 py-1.5 text-left text-sm">
-                        <Avatar className="h-8 w-8 rounded-lg">
-                          <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                        </Avatar>
-                        <div className="grid flex-1 text-left text-sm leading-tight">
-                          <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
-                          <span className="truncate text-xs">{user?.email || ''}</span>
-                        </div>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      <LogOut className="mr-2 size-4" />
-                      登出
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <SidebarMenuButton size="lg" onClick={handleSignIn}>
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <LogIn className="size-4" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">訪客</span>
-                    <span className="truncate text-xs">點此登入</span>
-                  </div>
-                </SidebarMenuButton>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 size-4" />
+                    登出
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <SidebarMenuButton size="lg" onClick={handleSignIn}>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <LogIn className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">訪客</span>
+                  <span className="truncate text-xs">點此登入</span>
+                </div>
+              </SidebarMenuButton>
             )}
           </SidebarMenuItem>
         </SidebarMenu>

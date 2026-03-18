@@ -107,13 +107,53 @@ export async function PUT(
 
     // Check restrictions for non-admins
     if (!isAdmin) {
+      // Check booking time is within allowed hours (08:00 - 22:00)
+      const startHour = startTime.getHours()
+      const startMin = startTime.getMinutes()
+      const endHour = endTime.getHours()
+      const endMin = endTime.getMinutes()
+      
+      const startMins = startHour * 60 + startMin
+      const endMins = endHour * 60 + endMin
+      
+      const allowedStart = 8 * 60 // 08:00
+      const allowedEnd = 22 * 60 // 22:00
+      
+      if (startMins < allowedStart || startMins >= allowedEnd) {
+        return NextResponse.json({ error: '借用時段為每日 8:00 至 22:00' }, { status: 400 })
+      }
+      
+      if (endMins <= allowedStart || endMins > allowedEnd) {
+        return NextResponse.json({ error: '借用時段為每日 8:00 至 22:00' }, { status: 400 })
+      }
+
+      // Check total duration does not exceed 4 hours per day
+      const durationMs = endTime.getTime() - startTime.getTime()
+      const durationHours = durationMs / (1000 * 60 * 60)
+      if (durationHours > 4) {
+        return NextResponse.json({ error: '一日最多借用 4 小時' }, { status: 400 })
+      }
+
+      // Check advance booking rule (1 day to 30 days before)
       const today = new Date()
       const minDate = new Date()
-      minDate.setDate(today.getDate() + 3)
+      minDate.setDate(today.getDate() + 1)
       minDate.setHours(0, 0, 0, 0) 
       
       if (startTime < minDate) {
-        return NextResponse.json({ error: '一般使用者需於 3 天前申請' }, { status: 400 })
+        return NextResponse.json({ error: '須於借用日前 1 日提出申請' }, { status: 400 })
+      }
+
+      const maxDate = new Date()
+      maxDate.setDate(today.getDate() + 30)
+      maxDate.setHours(23, 59, 59, 999)
+
+      if (startTime > maxDate) {
+        return NextResponse.json({ error: '最多僅能預約未來 30 天內的日期' }, { status: 400 })
+      }
+
+      if (endTime > maxDate) {
+        return NextResponse.json({ error: '借用結束日期超出可預約範圍（30 天）' }, { status: 400 })
       }
       
       if (!isDateWithin4Months(startTime, maxBookableMonths)) {

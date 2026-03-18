@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
-import { toTaipeiTime } from "@/lib/utils"
+import { toTaipeiTime, hasSocketUsage, stripSocketTag } from "@/lib/utils"
 import { ApproverActionButtons } from "./approver-action-buttons"
 import { ApproverDetailDialog } from "./approver-detail-dialog"
 import type { ApprovalStep } from "@/app/actions/admin-approvers"
+import { Plug } from "lucide-react"
 
 export type ApproverBookingItem = {
   booking: {
@@ -138,8 +139,15 @@ export function ApproverBookingList({ initialData, showCompleted }: ApproverBook
                     {format(toTaipeiTime(item.booking.end_time), "HH:mm")}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[150px] truncate" title={item.booking.purpose || ''}>
-                  {item.booking.purpose}
+                <TableCell className="max-w-[150px]" title={stripSocketTag(item.booking.purpose)}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate">{stripSocketTag(item.booking.purpose)}</span>
+                    {hasSocketUsage(item.booking.purpose) && (
+                      <span title="需要使用插座" className="shrink-0">
+                        <Plug className="h-3.5 w-3.5 text-emerald-600" />
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">

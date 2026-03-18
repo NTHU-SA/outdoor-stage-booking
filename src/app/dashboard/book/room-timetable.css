@@ -187,7 +187,8 @@
 
 /* Slot lane styling */
 .fc-wrapper .fc-timegrid-slot {
-  height: 2rem;
+  height: 0.8rem !important; /* Reduced further to make the entire day fit in one screen */
+  min-height: 0.8rem !important;
 }
 
 /* View container */

@@ -19,7 +19,7 @@ import type { Room } from "@/utils/supabase/queries"
 import type { SemesterSetting } from "@/utils/semester"
 import { validateBookingRules, generateTimeSlots } from "@/app/dashboard/book/utils"
 import { getOtherAreaBookingsDuring, type OtherAreaBookingStatus } from "@/app/actions/bookings"
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -36,10 +36,10 @@ import {
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { 
+import {
   getMaxBookableMonths,
-  isDateWithin4Months, 
-  isDateInLockedPeriod 
+  isDateWithin4Months,
+  isDateInLockedPeriod
 } from "@/utils/semester"
 import { useUser } from "@/hooks/use-user"
 
@@ -59,6 +59,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
   const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
   const [purpose, setPurpose] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [useSocket, setUseSocket] = useState(false)
   const [otherAreaBookings, setOtherAreaBookings] = useState<OtherAreaBookingStatus[]>([])
   const [loadingOtherAreaBookings, setLoadingOtherAreaBookings] = useState(false)
 
@@ -75,29 +76,30 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
 
     const storedBooking = localStorage.getItem(`pendingBooking_${room.id}`)
     if (storedBooking) {
-        try {
-            const { start, end, purpose: storedPurpose, borrowingUnit: storedBorrowingUnit } = JSON.parse(storedBooking)
-            const startDate = new Date(start)
-            const endDate = new Date(end)
-            
-            // Only restore if dates are valid
-            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-                onChange({ start: startDate, end: endDate })
-                if (storedBorrowingUnit) setBorrowingUnit(storedBorrowingUnit)
-                if (storedPurpose) setPurpose(storedPurpose)
-                
-                // If user is logged in, open the dialog automatically to continue
-                // If not logged in, just filling the form is enough (they will hit reserve again)
-                if (user) {
-                     setIsDialogOpen(true)
-                     // Clear storage after successfully restoring
-                     localStorage.removeItem(`pendingBooking_${room.id}`)
-                }
-            }
-        } catch (e) {
-            console.error("Failed to parse stored booking", e)
+      try {
+        const { start, end, purpose: storedPurpose, borrowingUnit: storedBorrowingUnit, useSocket: storedUseSocket } = JSON.parse(storedBooking)
+        const startDate = new Date(start)
+        const endDate = new Date(end)
+
+        // Only restore if dates are valid
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+          onChange({ start: startDate, end: endDate })
+          if (storedBorrowingUnit) setBorrowingUnit(storedBorrowingUnit)
+          if (storedPurpose) setPurpose(storedPurpose)
+          if (storedUseSocket) setUseSocket(storedUseSocket)
+
+          // If user is logged in, open the dialog automatically to continue
+          // If not logged in, just filling the form is enough (they will hit reserve again)
+          if (user) {
+            setIsDialogOpen(true)
+            // Clear storage after successfully restoring
             localStorage.removeItem(`pendingBooking_${room.id}`)
+          }
         }
+      } catch (e) {
+        console.error("Failed to parse stored booking", e)
+        localStorage.removeItem(`pendingBooking_${room.id}`)
+      }
     }
   }, [user, loading, room.id, onChange])
 
@@ -135,7 +137,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
       selectedSlot.start,
       selectedSlot.end,
       room.id,
-      [room], 
+      [room],
       semesters,
       isAdmin
     )
@@ -151,23 +153,24 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
   const handleSubmit = async () => {
     // Check auth here instead
     if (!user) {
-        // Save state to localStorage
-        if (selectedSlot) {
-            const bookingData = {
-                start: selectedSlot.start.toISOString(),
-                end: selectedSlot.end.toISOString(),
-              borrowingUnit,
-                purpose
-            }
-            localStorage.setItem(`pendingBooking_${room.id}`, JSON.stringify(bookingData))
+      // Save state to localStorage
+      if (selectedSlot) {
+        const bookingData = {
+          start: selectedSlot.start.toISOString(),
+          end: selectedSlot.end.toISOString(),
+          borrowingUnit,
+          purpose,
+          useSocket
         }
-        
-        toast.error("請先登入以完成預約")
-        // Redirect to login with return path
-        // Use window.location.pathname to get current path including id
-        const returnUrl = window.location.pathname
-        router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
-        return
+        localStorage.setItem(`pendingBooking_${room.id}`, JSON.stringify(bookingData))
+      }
+
+      toast.error("請先登入以完成預約")
+      // Redirect to login with return path
+      // Use window.location.pathname to get current path including id
+      const returnUrl = window.location.pathname
+      router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
+      return
     }
 
     if (!selectedSlot) return
@@ -186,36 +189,38 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
 
     setIsSubmitting(true)
     try {
-        const response = await fetch('/api/bookings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                roomId: room.id,
-              borrowingUnit,
-                startTime: selectedSlot.start.toISOString(),
-                endTime: selectedSlot.end.toISOString(),
-                purpose: purpose,
-            }),
-        })
+      const finalPurpose = purpose.trim() + (useSocket ? "\n(需要使用插座)" : "")
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: room.id,
+          borrowingUnit,
+          startTime: selectedSlot.start.toISOString(),
+          endTime: selectedSlot.end.toISOString(),
+          purpose: finalPurpose,
+        }),
+      })
 
-        if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || '預約失敗')
-        }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '預約失敗')
+      }
 
-        toast.success("預約申請已送出")
-        setIsDialogOpen(false)
-        setBorrowingUnit("")
-        setPurpose("")
-        onChange(null) 
-        // Clear any stored booking data just in case
-        localStorage.removeItem(`pendingBooking_${room.id}`)
-        router.push('/dashboard/my-bookings')
+      toast.success("預約申請已送出")
+      setIsDialogOpen(false)
+      setBorrowingUnit("")
+      setPurpose("")
+      setUseSocket(false)
+      onChange(null)
+      // Clear any stored booking data just in case
+      localStorage.removeItem(`pendingBooking_${room.id}`)
+      router.push('/dashboard/my-bookings')
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : '預約失敗'
-        toast.error(message)
+      const message = error instanceof Error ? error.message : '預約失敗'
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -229,85 +234,85 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
 
     const [hours, minutes] = timeStr.split(':').map(Number)
     if (type === 'start') {
-        const newDate = new Date(selectedSlot.start)
-        newDate.setHours(hours, minutes, 0, 0)
+      const newDate = new Date(selectedSlot.start)
+      newDate.setHours(hours, minutes, 0, 0)
 
-        // If new start is after current end, push end forward by 30 mins
-        if (newDate >= selectedSlot.end) {
-             const newEnd = new Date(newDate.getTime() + 1800000) // +30 mins
-             onChange({ start: newDate, end: newEnd })
-        } else {
-             onChange({ ...selectedSlot, start: newDate })
-        }
+      // If new start is after current end, push end forward by 30 mins
+      if (newDate >= selectedSlot.end) {
+        const newEnd = new Date(newDate.getTime() + 1800000) // +30 mins
+        onChange({ start: newDate, end: newEnd })
+      } else {
+        onChange({ ...selectedSlot, start: newDate })
+      }
     } else {
-        // Keep end date, only update time
-        const newEndDate = new Date(selectedSlot.end)
-        newEndDate.setHours(hours, minutes, 0, 0)
+      // Keep end date, only update time
+      const newEndDate = new Date(selectedSlot.end)
+      newEndDate.setHours(hours, minutes, 0, 0)
 
-        if (newEndDate <= selectedSlot.start) {
-          toast.error("結束時間必須晚於開始時間")
-          return
-        }
-        
-        onChange({ ...selectedSlot, end: newEndDate })
+      if (newEndDate <= selectedSlot.start) {
+        toast.error("結束時間必須晚於開始時間")
+        return
+      }
+
+      onChange({ ...selectedSlot, end: newEndDate })
     }
   }
-  
+
   const handleStartDateSelect = (date: Date | undefined) => {
-      if (!date) return
+    if (!date) return
 
-      // If we already have a slot, keep the time but update the date
-      if (selectedSlot) {
-          const newStart = new Date(date)
-          newStart.setHours(selectedSlot.start.getHours(), selectedSlot.start.getMinutes(), 0, 0)
+    // If we already have a slot, keep the time but update the date
+    if (selectedSlot) {
+      const newStart = new Date(date)
+      newStart.setHours(selectedSlot.start.getHours(), selectedSlot.start.getMinutes(), 0, 0)
 
-          const newEnd = new Date(selectedSlot.end)
-          
-          if (newStart >= newEnd) {
-            const adjustedEnd = new Date(newStart.getTime() + 1800000)
-            onChange({ start: newStart, end: adjustedEnd })
-          } else {
-            onChange({ start: newStart, end: newEnd })
-          }
+      const newEnd = new Date(selectedSlot.end)
+
+      if (newStart >= newEnd) {
+        const adjustedEnd = new Date(newStart.getTime() + 1800000)
+        onChange({ start: newStart, end: adjustedEnd })
       } else {
-          // If no slot selected, default to 08:00 - 09:00 on the selected date
-          const newStart = new Date(date)
-          newStart.setHours(8, 0, 0, 0)
-
-          const newEnd = new Date(date)
-          newEnd.setHours(9, 0, 0, 0)
-
-          onChange({ start: newStart, end: newEnd })
+        onChange({ start: newStart, end: newEnd })
       }
+    } else {
+      // If no slot selected, default to 08:00 - 09:00 on the selected date
+      const newStart = new Date(date)
+      newStart.setHours(8, 0, 0, 0)
+
+      const newEnd = new Date(date)
+      newEnd.setHours(9, 0, 0, 0)
+
+      onChange({ start: newStart, end: newEnd })
+    }
   }
 
   const handleEndDateSelect = (date: Date | undefined) => {
-      if (!date) return
+    if (!date) return
 
-      if (selectedSlot) {
-          const newEnd = new Date(date)
-          newEnd.setHours(selectedSlot.end.getHours(), selectedSlot.end.getMinutes(), 0, 0)
+    if (selectedSlot) {
+      const newEnd = new Date(date)
+      newEnd.setHours(selectedSlot.end.getHours(), selectedSlot.end.getMinutes(), 0, 0)
 
-          if (newEnd <= selectedSlot.start) {
-            toast.error("結束日期時間必須晚於開始日期時間")
-            return
-          }
-
-          onChange({ ...selectedSlot, end: newEnd })
-      } else {
-          // If no slot selected yet, create a default slot ending on selected date
-          const newStart = new Date(date)
-          newStart.setHours(8, 0, 0, 0)
-
-          const newEnd = new Date(date)
-          newEnd.setHours(9, 0, 0, 0)
-
-          onChange({ start: newStart, end: newEnd })
+      if (newEnd <= selectedSlot.start) {
+        toast.error("結束日期時間必須晚於開始日期時間")
+        return
       }
+
+      onChange({ ...selectedSlot, end: newEnd })
+    } else {
+      // If no slot selected yet, create a default slot ending on selected date
+      const newStart = new Date(date)
+      newStart.setHours(8, 0, 0, 0)
+
+      const newEnd = new Date(date)
+      newEnd.setHours(9, 0, 0, 0)
+
+      onChange({ start: newStart, end: newEnd })
+    }
   }
 
   // Get current start/end time strings
-  const startTimeStr = selectedSlot 
+  const startTimeStr = selectedSlot
     ? format(selectedSlot.start, "HH:mm")
     : ""
   const endTimeStr = selectedSlot
@@ -322,9 +327,9 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
       <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden sticky top-4">
         <div className="p-6 flex flex-col gap-4">
 
-            <div className="rounded-lg border border-neutral-200 dark:border-neutral-800">
-             {/* Date Section */}
-             <div className="grid grid-cols-2 border-b border-neutral-200 dark:border-neutral-800">
+          <div className="rounded-lg border border-neutral-200 dark:border-neutral-800">
+            {/* Date Section */}
+            <div className="grid grid-cols-2 border-b border-neutral-200 dark:border-neutral-800">
               <div className="p-3 border-r border-neutral-200 dark:border-neutral-800">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">開始日期</div>
                 <Popover>
@@ -358,10 +363,15 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
 
                         // If user is NOT admin, apply additional restrictions
                         if (!isAdmin) {
-                          // 3-day rule
+                          // 1-day advance rule
                           const minDate = new Date(today)
-                          minDate.setDate(today.getDate() + 3)
+                          minDate.setDate(today.getDate() + 1)
                           if (date < minDate) return true
+
+                          // Max 30-day limit
+                          const maxDate = new Date(today)
+                          maxDate.setDate(today.getDate() + 30)
+                          if (date > maxDate) return true
 
                           // Max-month limit
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
@@ -410,16 +420,19 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
 
                         if (!isAdmin) {
                           const minDate = new Date(today)
-                          minDate.setDate(today.getDate() + 3)
+                          minDate.setDate(today.getDate() + 1)
                           if (date < minDate) return true
+                          const maxDate = new Date(today)
+                          maxDate.setDate(today.getDate() + 30)
+                          if (date > maxDate) return true
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
                           if (isDateInLockedPeriod(date, semesters, false)) return true
                         }
 
                         if (selectedSlot) {
-                        const minEndDate = new Date(selectedSlot.start)
-                        minEndDate.setHours(0, 0, 0, 0)
-                        if (date < minEndDate) return true
+                          const minEndDate = new Date(selectedSlot.start)
+                          minEndDate.setHours(0, 0, 0, 0)
+                          if (date < minEndDate) return true
                         }
 
                         return false
@@ -428,44 +441,44 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
                   </PopoverContent>
                 </Popover>
               </div>
-             </div>
-             
-             {/* Time Section */}
-             <div className="grid grid-cols-2">
-                <div className="p-3 border-r border-neutral-200 dark:border-neutral-800">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">開始</div>
-                    <Select 
-                        value={startTimeStr} 
-                        onValueChange={(v) => updateTime('start', v)}
-                        disabled={!selectedSlot}
-                    >
-                        <SelectTrigger className="border-0 p-0 h-auto font-medium focus:ring-0 shadow-none">
-                            <SelectValue placeholder="--" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">結束</div>
-                     <Select 
-                        value={endTimeStr} 
-                        onValueChange={(v) => updateTime('end', v)}
-                        disabled={!selectedSlot}
-                    >
-                        <SelectTrigger className="border-0 p-0 h-auto font-medium focus:ring-0 shadow-none">
-                            <SelectValue placeholder="--" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-             </div>
+            </div>
+
+            {/* Time Section */}
+            <div className="grid grid-cols-2">
+              <div className="p-3 border-r border-neutral-200 dark:border-neutral-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">開始</div>
+                <Select
+                  value={startTimeStr}
+                  onValueChange={(v) => updateTime('start', v)}
+                  disabled={!selectedSlot}
+                >
+                  <SelectTrigger className="border-0 p-0 h-auto font-medium focus:ring-0 shadow-none">
+                    <SelectValue placeholder="--" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="p-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">結束</div>
+                <Select
+                  value={endTimeStr}
+                  onValueChange={(v) => updateTime('end', v)}
+                  disabled={!selectedSlot}
+                >
+                  <SelectTrigger className="border-0 p-0 h-auto font-medium focus:ring-0 shadow-none">
+                    <SelectValue placeholder="--" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-          
-          <Button 
+
+          <Button
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg h-12 font-semibold"
             onClick={handleReserveClick}
             disabled={!selectedSlot}
@@ -480,11 +493,11 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
           <DialogHeader>
             <DialogTitle>確認預約資訊</DialogTitle>
             <DialogDescription>
-              {room.name} <br/>
+              {room.name} <br />
               {selectedSlot && format(selectedSlot.start, "yyyy/MM/dd HH:mm")} - {selectedSlot && format(selectedSlot.end, "yyyy/MM/dd HH:mm")}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>同時段其他野台區域借用狀況</Label>
@@ -542,11 +555,23 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>取消</Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <DialogFooter className="sm:justify-between items-center w-full">
+            <div className="flex items-center gap-2 self-start sm:self-auto mb-4 sm:mb-0">
+              <Checkbox
+                id="use-socket-widget"
+                checked={useSocket}
+                onCheckedChange={(checked) => setUseSocket(checked === true)}
+              />
+              <Label htmlFor="use-socket-widget" className="text-sm font-semibold text-emerald-700 cursor-pointer">
+                需要使用插座
+              </Label>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>取消</Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 {isSubmitting ? "提交中..." : "確認預約"}
-            </Button>
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

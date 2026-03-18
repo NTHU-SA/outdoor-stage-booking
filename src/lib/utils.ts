@@ -33,3 +33,15 @@ export function toTaipeiTime(dateInput: Date | string): Date {
     part('second')
   );
 }
+
+const SOCKET_TAG = "\n(需要使用插座)"
+
+/** Check if a booking purpose includes the socket usage tag */
+export function hasSocketUsage(purpose: string | null): boolean {
+  return !!purpose?.includes(SOCKET_TAG)
+}
+
+/** Strip the socket usage tag from the purpose text for display */
+export function stripSocketTag(purpose: string | null): string {
+  return (purpose || '').replace(SOCKET_TAG, '')
+}

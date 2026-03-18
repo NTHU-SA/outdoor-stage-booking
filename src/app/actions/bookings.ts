@@ -9,6 +9,7 @@ type BookingRow = {
   end_time: string
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
   purpose: string | null
+  borrowing_unit: string | null
   profiles: {
     full_name: string | null
     username: string | null
@@ -57,6 +58,7 @@ export async function getRoomBookings(roomId: string, excludeBookingId?: string)
       end_time,
       status,
       purpose,
+      borrowing_unit,
       profiles:user_id (
         full_name,
         username
@@ -86,19 +88,17 @@ export async function getRoomBookings(roomId: string, excludeBookingId?: string)
     let title = ''
     let details = ''
 
+    const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
+    const unitName = booking.borrowing_unit ? booking.borrowing_unit.trim() : '個人借用者'
+    const displayUnit = `${unitName} (${userName})`
+
     if (isAdmin) {
-      const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
-      title = `${userName} - ${booking.purpose}`
-      details = `借用人: ${userName}\n事由: ${booking.purpose}\n狀態: ${booking.status === 'approved' ? '已核准' : '待審核'}`
+      title = displayUnit
+      details = `借用單位: ${unitName}\n借用人: ${userName}\n狀態: ${booking.status === 'approved' ? '已核准' : '待審核'}`
     } else {
       // For regular users
       if (booking.status === 'approved') {
-        if (user) {
-          const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
-          title = `${userName} 預約`
-        } else {
-          title = '已預約'
-        }
+        title = displayUnit
       } else if (booking.status === 'pending') {
         title = '審核中'
       }
@@ -152,6 +152,7 @@ export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
       end_time,
       status,
       purpose,
+      borrowing_unit,
       profiles:user_id (
         full_name,
         username
@@ -177,18 +178,16 @@ export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
       let title = ''
       let details = ''
 
+      const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
+      const unitName = booking.borrowing_unit ? booking.borrowing_unit.trim() : '個人借用者'
+      const displayUnit = `${unitName} (${userName})`
+
       if (isAdmin) {
-        const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
-        title = `[${roomName}] ${userName} - ${booking.purpose}`
-        details = `空間: ${roomName}\n借用人: ${userName}\n事由: ${booking.purpose}\n狀態: ${booking.status === 'approved' ? '已核准' : '待審核'}`
+        title = `[${roomName}] ${displayUnit}`
+        details = `空間: ${roomName}\n借用單位: ${unitName}\n借用人: ${userName}\n狀態: ${booking.status === 'approved' ? '已核准' : '待審核'}`
       } else {
         if (booking.status === 'approved') {
-          if (user) {
-            const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
-            title = `[${roomName}] ${userName} 預約`
-          } else {
-            title = `[${roomName}] 已預約`
-          }
+          title = `[${roomName}] ${displayUnit}`
         } else if (booking.status === 'pending') {
           title = `[${roomName}] 審核中`
         }

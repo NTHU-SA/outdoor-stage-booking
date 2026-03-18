@@ -55,7 +55,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
   const calendarEvents: EventInput[] = events.map((event) => {
     let backgroundColor = '#3b82f6' // Blue-500
     let borderColor = '#2563eb' // Blue-600
-    
+
     if (event.status === 'approved') {
       backgroundColor = '#ef4444' // Red-500
       borderColor = '#dc2626' // Red-600
@@ -110,7 +110,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
     if (start >= now) {
       onSelectSlot?.({ start, end })
     }
-    
+
     // Unselect the selection highlight as we will show the 'selected-slot' event instead
     const calendarApi = selectInfo.view.calendar
     calendarApi.unselect()
@@ -123,7 +123,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
-      
+
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -153,8 +153,8 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           day: '日',
         }}
         slotDuration="00:30:00"
-        slotMinTime="00:00:00"
-        slotMaxTime="24:00:00"
+        slotMinTime="08:00:00"
+        slotMaxTime="22:00:00"
         slotLabelInterval="01:00:00"
         slotLabelFormat={{
           hour: '2-digit',
@@ -166,15 +166,18 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           minute: '2-digit',
           hour12: false,
         }}
-        dayHeaderFormat={{ 
-          month: 'numeric', 
-          day: 'numeric', 
-          weekday: 'narrow' 
+        dayHeaderFormat={{
+          month: 'numeric',
+          day: 'numeric',
+          weekday: 'narrow'
         }}
         allDaySlot={false}
         nowIndicator={true}
         selectable={true}
         selectMirror={true}
+        selectLongPressDelay={100}
+        longPressDelay={100}
+        eventLongPressDelay={100}
         select={handleDateSelect}
         events={calendarEvents}
         height="auto"

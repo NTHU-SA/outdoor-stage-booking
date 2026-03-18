@@ -10,11 +10,11 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
-import { toTaipeiTime } from "@/lib/utils"
+import { toTaipeiTime, hasSocketUsage, stripSocketTag } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { ApproverActionButtons } from "./approver-action-buttons"
-import { CheckCircle2, Circle, XCircle, SkipForward } from "lucide-react"
+import { CheckCircle2, Circle, XCircle, SkipForward, Plug } from "lucide-react"
 import type { ApproverBookingItem } from "./approver-booking-list"
 import type { ApprovalStep } from "@/app/actions/admin-approvers"
 
@@ -121,8 +121,14 @@ export function ApproverDetailDialog({
               <div>
                 <Label className="text-muted-foreground text-xs">申請事由</Label>
                 <div className="mt-1 p-2 bg-muted/50 rounded-md text-sm whitespace-pre-wrap wrap-break-word max-h-[150px] overflow-y-auto">
-                  {booking.purpose}
+                  {stripSocketTag(booking.purpose)}
                 </div>
+                {hasSocketUsage(booking.purpose) && (
+                  <div className="flex items-center gap-1.5 mt-2 text-sm text-emerald-700 font-medium">
+                    <Plug className="h-4 w-4" />
+                    需要使用插座
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -136,9 +142,8 @@ export function ApproverDetailDialog({
               {allSteps.map((s) => (
                 <div
                   key={s.id}
-                  className={`flex items-center gap-3 p-2 rounded-md text-sm ${
-                    s.id === step.id ? "bg-primary/5 border border-primary/20" : "bg-muted/30"
-                  }`}
+                  className={`flex items-center gap-3 p-2 rounded-md text-sm ${s.id === step.id ? "bg-primary/5 border border-primary/20" : "bg-muted/30"
+                    }`}
                 >
                   {getStepIcon(s)}
                   <div className="flex-1">

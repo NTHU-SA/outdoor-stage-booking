@@ -59,6 +59,7 @@ export async function getAdminBookings(
         room_code
       ),
       user:profiles (
+        id,
         full_name,
         student_id,
         username
@@ -138,6 +139,22 @@ export async function getAdminBookings(
           }
         }
         return { ...b, has_multi_level_approval: false }
+      })
+    }
+
+    // Map emails to users
+    const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers()
+    if (authUsers) {
+      const emailMap = new Map(authUsers.map(u => [u.id, u.email]))
+      bookings = bookings.map(b => {
+        const userId = (b.user as any).id
+        return {
+          ...b,
+          user: {
+            ...b.user,
+            email: userId ? (emailMap.get(userId) || '') : ''
+          }
+        }
       })
     }
   }

@@ -6,7 +6,7 @@ import { SemesterSetting } from "@/utils/semester"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
-import { toTaipeiTime } from "@/lib/utils"
+import { toTaipeiTime, hasSocketUsage, stripSocketTag } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
 import { CancelBookingButton } from "./cancel-button"
 import { EditBookingDialog } from "./edit-booking-dialog"
 import { Button } from "@/components/ui/button"
-import { Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Pencil, ArrowUpDown, ArrowUp, ArrowDown, Plug } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
@@ -33,7 +33,7 @@ type SortOrder = 'asc' | 'desc' | null
 
 export function BookingList({ bookings, rooms, semesterSettings }: BookingListProps) {
   const [showHistory, setShowHistory] = useState(false)
-  
+
   // Sorting state
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortOrder, setSortOrder] = useState<SortOrder>(null)
@@ -119,25 +119,25 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
         <TableHeader>
           <TableRow>
             <TableHead className="text-left w-[200px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
-                    空間
-                    {getSortIcon('room')}
-                </Button>
+              <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
+                空間
+                {getSortIcon('room')}
+              </Button>
             </TableHead>
             <TableHead className="text-left w-[150px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
-                    日期
-                    {getSortIcon('time')}
-                </Button>
+              <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
+                日期
+                {getSortIcon('time')}
+              </Button>
             </TableHead>
             <TableHead className="text-left w-[120px]">時段</TableHead>
             <TableHead>事由</TableHead>
             <TableHead className="text-left w-[100px]">狀態</TableHead>
             <TableHead className="text-left w-[140px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
-                    申請時間
-                    {getSortIcon('created_at')}
-                </Button>
+              <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
+                申請時間
+                {getSortIcon('created_at')}
+              </Button>
             </TableHead>
             <TableHead className="text-right">操作</TableHead>
           </TableRow>
@@ -165,8 +165,15 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
                   {format(toTaipeiTime(booking.start_time), "HH:mm")} -{" "}
                   {format(toTaipeiTime(booking.end_time), "HH:mm")}
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={booking.purpose}>
-                  {booking.purpose}
+                <TableCell className="max-w-[200px]" title={stripSocketTag(booking.purpose)}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate">{stripSocketTag(booking.purpose)}</span>
+                    {hasSocketUsage(booking.purpose) && (
+                      <span title="需要使用插座" className="shrink-0">
+                        <Plug className="h-3.5 w-3.5 text-emerald-600" />
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-left">{getStatusBadge(booking.status)}</TableCell>
                 <TableCell className="text-muted-foreground text-sm text-left">
@@ -176,8 +183,8 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
                   <div className="flex items-center justify-end gap-2">
                     {booking.status === 'pending' && (
                       <>
-                        <EditBookingDialog 
-                          booking={booking} 
+                        <EditBookingDialog
+                          booking={booking}
                           rooms={rooms}
                           semesterSettings={semesterSettings}
                         >

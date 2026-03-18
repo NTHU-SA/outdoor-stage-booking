@@ -8,12 +8,12 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
-import { toTaipeiTime } from "@/lib/utils"
+import { toTaipeiTime, hasSocketUsage, stripSocketTag } from "@/lib/utils"
 import { Booking } from "./booking-list"
 import { ActionButtons } from "./action-buttons"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle2, Circle, XCircle, SkipForward } from "lucide-react"
+import { CheckCircle2, Circle, XCircle, SkipForward, Plug } from "lucide-react"
 
 interface BookingDetailDialogProps {
   booking: Booking | null
@@ -22,9 +22,9 @@ interface BookingDetailDialogProps {
   onActionSuccess: (id: string, action: 'approve' | 'reject' | 'delete') => void
 }
 
-export function BookingDetailDialog({ 
-  booking, 
-  open, 
+export function BookingDetailDialog({
+  booking,
+  open,
   onOpenChange,
   onActionSuccess
 }: BookingDetailDialogProps) {
@@ -65,7 +65,7 @@ export function BookingDetailDialog({
         <DialogHeader>
           <DialogTitle>預約詳細資訊</DialogTitle>
           <DialogDescription>
-             查看完整的預約內容與處理狀態
+            查看完整的預約內容與處理狀態
           </DialogDescription>
         </DialogHeader>
 
@@ -75,53 +75,63 @@ export function BookingDetailDialog({
             <span className="font-semibold text-sm">狀態</span>
             {getStatusBadge(booking.status)}
           </div>
-          
+
           <Separator />
 
           {/* User Info */}
           <div className="space-y-3">
-             <h4 className="font-medium text-sm text-muted-foreground">申請人資訊</h4>
-             <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                   <Label className="text-muted-foreground text-xs">姓名</Label>
-                   <div>{booking.user.full_name}</div>
-                </div>
-                <div>
-                   <Label className="text-muted-foreground text-xs">學號/員編</Label>
-                   <div>{booking.user.student_id || '-'}</div>
-                </div>
-             </div>
+            <h4 className="font-medium text-sm text-muted-foreground">申請人資訊</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <Label className="text-muted-foreground text-xs">姓名</Label>
+                <div>{booking.user.full_name}</div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">學號/員編</Label>
+                <div>{booking.user.student_id || '-'}</div>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-muted-foreground text-xs">電子郵件</Label>
+                <div className="truncate" title={booking.user.email}>{booking.user.email || '-'}</div>
+              </div>
+            </div>
           </div>
 
           <Separator />
 
           {/* Booking Info */}
           <div className="space-y-3">
-             <h4 className="font-medium text-sm text-muted-foreground">空間預約資訊</h4>
-             <div className="grid gap-3 text-sm">
+            <h4 className="font-medium text-sm text-muted-foreground">空間預約資訊</h4>
+            <div className="grid gap-3 text-sm">
+              <div>
+                <Label className="text-muted-foreground text-xs">借用空間</Label>
+                <div>{booking.room.name}</div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">借用時間</Label>
                 <div>
-                   <Label className="text-muted-foreground text-xs">借用空間</Label>
-                   <div>{booking.room.name}</div>
+                  {format(toTaipeiTime(booking.start_time), "yyyy/MM/dd (eee)", { locale: zhTW })}
+                  <br />
+                  {format(toTaipeiTime(booking.start_time), "HH:mm")} - {format(toTaipeiTime(booking.end_time), "HH:mm")}
                 </div>
-                <div>
-                   <Label className="text-muted-foreground text-xs">借用時間</Label>
-                   <div>
-                     {format(toTaipeiTime(booking.start_time), "yyyy/MM/dd (eee)", { locale: zhTW })}
-                     <br />
-                     {format(toTaipeiTime(booking.start_time), "HH:mm")} - {format(toTaipeiTime(booking.end_time), "HH:mm")}
-                   </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">申請時間</Label>
+                <div>{format(toTaipeiTime(booking.created_at), "yyyy/MM/dd HH:mm", { locale: zhTW })}</div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">申請事由</Label>
+                <div className="mt-1 p-2 bg-muted/50 rounded-md text-sm whitespace-pre-wrap wrap-break-word max-h-[150px] overflow-y-auto">
+                  {stripSocketTag(booking.purpose)}
                 </div>
-                <div>
-                    <Label className="text-muted-foreground text-xs">申請時間</Label>
-                    <div>{format(toTaipeiTime(booking.created_at), "yyyy/MM/dd HH:mm", { locale: zhTW })}</div>
-                </div>
-                <div>
-                   <Label className="text-muted-foreground text-xs">申請事由</Label>
-                   <div className="mt-1 p-2 bg-muted/50 rounded-md text-sm whitespace-pre-wrap wrap-break-word max-h-[150px] overflow-y-auto">
-                      {booking.purpose}
-                   </div>
-                </div>
-             </div>
+                {hasSocketUsage(booking.purpose) && (
+                  <div className="flex items-center gap-1.5 mt-2 text-sm text-emerald-700 font-medium">
+                    <Plug className="h-4 w-4" />
+                    需要使用插座
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Approval Steps */}
@@ -156,17 +166,16 @@ export function BookingDetailDialog({
                       <Badge
                         variant={
                           step.status === 'approved' ? 'default' :
-                          step.status === 'rejected' ? 'destructive' :
-                          step.status === 'skipped' ? 'outline' : 'secondary'
+                            step.status === 'rejected' ? 'destructive' :
+                              step.status === 'skipped' ? 'outline' : 'secondary'
                         }
-                        className={`text-xs ${
-                          step.status === 'approved' ? 'bg-green-600' :
+                        className={`text-xs ${step.status === 'approved' ? 'bg-green-600' :
                           step.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''
-                        }`}
+                          }`}
                       >
                         {step.status === 'approved' ? '已核准' :
-                         step.status === 'rejected' ? '已拒絕' :
-                         step.status === 'skipped' ? '已跳過' : '待審核'}
+                          step.status === 'rejected' ? '已拒絕' :
+                            step.status === 'skipped' ? '已跳過' : '待審核'}
                       </Badge>
                     </div>
                   ))}
@@ -176,17 +185,17 @@ export function BookingDetailDialog({
           )}
 
           <Separator />
-          
+
           <div className="flex justify-end pt-2">
-             <ActionButtons 
-                bookingId={booking.id} 
-                status={booking.status}
-                hasMultiLevelApproval={booking.has_multi_level_approval}
-                onSuccess={(action) => {
-                    onActionSuccess(booking.id, action)
-                    onOpenChange(false)
-                }}
-             />
+            <ActionButtons
+              bookingId={booking.id}
+              status={booking.status}
+              hasMultiLevelApproval={booking.has_multi_level_approval}
+              onSuccess={(action) => {
+                onActionSuccess(booking.id, action)
+                onOpenChange(false)
+              }}
+            />
           </div>
         </div>
       </DialogContent>

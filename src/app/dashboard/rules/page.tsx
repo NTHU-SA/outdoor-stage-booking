@@ -1,90 +1,342 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
+import { AlertTriangle, Clock, Users, MapPin, Zap, Ban, Mail } from "lucide-react"
 
 export default function RulesPage() {
+  const SA_EMAIL = "nthusa@gapp.nthu.edu.tw"
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">借用規則說明</h2>
+        <h2 className="text-2xl font-bold tracking-tight">野台借用須知</h2>
       </div>
 
+      {/* 重要提醒 */}
+      <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            為維持野台使用秩序與公平性，並確保活動安全與場地整潔，請借用單位於申請前詳閱以下規範。
+          </p>
+        </div>
+      </div>
+
+      {/* 一、借用時段 */}
       <Card>
         <CardHeader>
-          <CardTitle>借用原則與規範</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            一、借用時段
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-8">
-          <div className="space-y-4">
-            <p className="leading-7">
-              為有效管理及運用本院野台空間，並兼顧各單位業務推動需求，特將相關借用原則說明如下，請各系所周知並轉知師生遵循。
-            </p>
-            <ul className="list-none space-y-2">
-              <li>
-                <span className="font-semibold">1. 借用方法：</span>填寫此表單申請
-              </li>
-              <li>
-                <span className="font-semibold">2. 借用原則：</span>由於會議室數量有限，學生口試請先洽借研討室使用，以利會議室供其他行政及學術需求使用。
-              </li>
-              <li>
-                <span className="font-semibold">3. 收費說明：</span>目前野台借用為利業務推動，暫不收取費用；惟後續將視使用狀況及實際需求，另行研議並訂定收費辦法。
-              </li>
-              <li>
-                <span className="font-semibold">4. 借用時間：</span>全天 24 小時皆可申請借用（00:00 – 24:00）。
-              </li>
-              <li>
-                <span className="font-semibold">5. 申請期限：</span>一般使用者須於借用日 <span className="text-red-600 font-semibold">3 天前</span>提出申請。
-              </li>
-              <li>
-                <span className="font-semibold">6. 借用期限：</span>單次連續借用最多 <span className="text-red-600 font-semibold">2 週（14 天）</span>，系統將自動核准；超過 2 週需送交人工審核。
-              </li>
-              <li>
-                <span className="font-semibold">7. 時間衝突：</span>同一空間同一時段僅允許一筆預約，系統將自動進行衝突比對，重疊時段申請將被拒絕。
-              </li>
-              <li>
-                <span className="font-semibold">8. 鑰匙管理：</span>借用人請至院辦公室辦理鑰匙借取與歸還手續，並依規定使用與維護空間。
-              </li>
-            </ul>
-          </div>
-
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">借用流程</h3>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">使用者登記空間</span>
-                <span>→</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">空間管理人通過野台借用</span>
-                <span>→</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">使用者使用空間</span>
-                <span>→</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">使用完畢</span>
-                <span>→</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">使用者補登記現場借用的設備</span>
-                <span>→</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">空間管理人確認設備OK後通過</span>
-              </div>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">1</Badge>
+              <p className="text-sm leading-relaxed">
+                野台可透過本系統借用之時段為{" "}
+                <span className="font-semibold text-red-600">每日 8:00 A.M. 至 10:00 P.M.</span>
+                ，一日原則上最多借用{" "}
+                <span className="font-semibold text-red-600">4 小時</span>
+                ，一個月最多借用{" "}
+                <span className="font-semibold text-red-600">12 天</span>
+                ，若一次需借用 3 日以上或系統故障，請致信學生會信箱申請。
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">2</Badge>
+              <p className="text-sm leading-relaxed">
+                野台預約須於借用日前{" "}
+                <span className="font-semibold text-red-600">「一個月至前一日」</span>{" "}
+                完成申請。
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">3</Badge>
+              <p className="text-sm leading-relaxed">
+                若需借用{" "}
+                <span className="font-semibold">非開放時段</span>{" "}
+                或{" "}
+                <span className="font-semibold">連日借用</span>
+                ，請寄信至學生會信箱說明需求，經審核同意後方可借用。
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">4</Badge>
+              <p className="text-sm leading-relaxed">
+                若需取消或異動，請於{" "}
+                <span className="font-semibold text-red-600">借用日前 2 日</span>{" "}
+                聯繫學生會。
+              </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">完整規定流程圖</h3>
-            {/* 使用者請將圖片命名為 booking-rules.png 並放入 public 資料夾 */}
-            <div className="relative w-3/4 mx-auto rounded-lg overflow-hidden border bg-muted">
+      {/* 二、借用單位優先順序與相關規定 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            二、借用單位優先順序與相關規定
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">1</Badge>
+              <p className="text-sm leading-relaxed">
+                野台借用以{" "}
+                <span className="font-semibold">學生社團及校內官方團體</span>{" "}
+                為優先。校外單位及未經報備之團體須禮讓優先對象。學生社團資格以{" "}
+                <span className="font-semibold">課外活動組公告之社團名單</span>{" "}
+                為準。
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">2</Badge>
+              <div className="text-sm leading-relaxed">
+                <p>
+                  校外單位以收費為借用原則，每{" "}
+                  <span className="font-semibold">2 小時</span>{" "}
+                  為一單位，不足 2 小時以 2 小時計，費用為{" "}
+                  <span className="font-semibold text-red-600">新臺幣 500 元整</span>
+                  ，若有特殊需求或價格疑問請透過學生會信箱說明。
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">3</Badge>
+              <p className="text-sm leading-relaxed">
+                校外單位將繳費證明寄給學生會信箱期限在{" "}
+                <span className="font-semibold text-red-600">活動結束後 2 日前</span>。
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 三、場地分區說明 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            三、場地分區說明
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm leading-relaxed">
+            野台分區從面對小吃部方向，分為{" "}
+            <span className="font-semibold">「中間、左邊、右邊、座椅區」</span>{" "}
+            共四區，每次借用{" "}
+            <span className="font-semibold text-red-600">以一區為原則且不得跨區使用</span>
+            ，若有特殊借用需求可透過學生會信箱寄信提出。
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            若有同時段不同借用者同時使用野台情況，請自行協調或透過學生會信箱向另一借用單位協調借用區域範圍。
+          </p>
+
+          {/* 野台位置示意圖 placeholder */}
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold mb-2">野台位置示意圖</h4>
+            <div className="relative w-full md:max-w-lg mx-auto rounded-lg overflow-hidden border bg-muted">
+              {/* TODO: 請將野台位置示意圖命名為 stage-location-map.png 並放入 public 資料夾 */}
               <Image
-                src="/booking-rules.png"
-                alt="完整規定流程圖"
+                src="/stage-location-map.png"
+                alt="野台位置示意圖"
                 width={1920}
                 height={1080}
                 className="w-full h-auto object-contain"
+                onError={(e) => {
+                  // Hide broken image - will show placeholder
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">野台位置示意圖（待上傳 /public/stage-location-map.png）</div>'
+                }}
               />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 四、使用規範與器材 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5" />
+            四、使用規範與器材
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">1</Badge>
+              <div className="text-sm leading-relaxed">
+                <p>
+                  <span className="font-semibold">電力使用：</span>
+                  僅提供{" "}
+                  <span className="font-semibold">3 個 110V 插頭</span>
+                  。若有大型用電需求，請務必事前與學生會商議並取得同意。
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">2</Badge>
+              <div className="text-sm leading-relaxed">
+                <p>
+                  <span className="font-semibold">器材準備：</span>
+                  學生會僅提供「場地」，不提供桌椅等器材。如有需求請參考「課外組器材管理要點」自行籌措。
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">3</Badge>
+              <div className="text-sm leading-relaxed">
+                <p>
+                  <span className="font-semibold">場地恢復：</span>
+                  借用單位須負場地安全與整潔責任。使用結束時，須將物品淨空並恢復原狀。若造成場地或設施損壞，須負修復或賠償責任。
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">4</Badge>
+              <p className="text-sm leading-relaxed">
+                使用音響或擴音設備時，音量不得影響周邊教學與行政單位，且不得長時間高音量播放。若因噪音造成投訴或影響校園秩序，學生會得要求立即改善或停止活動。
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">5</Badge>
+              <p className="text-sm leading-relaxed">
+                借用單位之攤位、設備及排隊動線不得影響其他借用單位或公共通行空間。
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 五、禁止行為與違規處理 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Ban className="h-5 w-5" />
+            五、禁止行為與違規處理
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm font-semibold">野台禁止以下行為：</p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              "炊膳或用火（如瓦斯、木炭、煙火等）",
+              "留宿或過夜",
+              "吸菸或嚼食檳榔",
+              "赤膊裸體",
+              "攜帶危險或違禁物品",
+              "放置私人或社團器材過夜",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2 text-sm">
+                <span className="text-red-500 mt-0.5">✕</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-sm text-muted-foreground">
+            若物品遺失，請自行負責。
+          </p>
+          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+            <p className="text-sm text-red-800 dark:text-red-300">
+              若違反上述規範、使用大型用電未報備、或填寫申請資料不實（如冒用名義），學生會將給予警告或撤銷申請，累犯者將不予通過該學年度之借用申請。
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 聯繫資訊 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            聯繫方式
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-relaxed">
+            如有任何問題或特殊需求，請寄信至學生會信箱：
+            <a href={`mailto:${SA_EMAIL}`} className="ml-1 font-semibold text-blue-600 hover:underline dark:text-blue-400">
+              {SA_EMAIL}
+            </a>
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* 借用流程 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>借用流程</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* 簡易文字流程 */}
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            {[
+              "填寫借用申請表單",
+              "學生會審核申請",
+              "審核通過，確認借用",
+              "借用單位使用場地",
+              "使用完畢，恢復場地原狀",
+            ].map((step, index, arr) => (
+              <div key={step} className="flex items-center gap-2">
+                <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">
+                  {step}
+                </span>
+                {index < arr.length - 1 && <span>→</span>}
+              </div>
+            ))}
+          </div>
+
+          {/* 借用流程圖 placeholders */}
+          <div className="border-t pt-6 space-y-6">
+            <h3 className="text-lg font-semibold">完整借用流程圖</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 借用流程圖 1 */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground text-center">流程圖一</h4>
+                <div className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border bg-muted">
+                  {/* TODO: 請將借用流程圖一命名為 booking-flow-1.png 並放入 public 資料夾 */}
+                  <Image
+                    src="/booking-flow-1.png"
+                    alt="借用流程圖一"
+                    width={1920}
+                    height={1080}
+                    className="w-full h-auto object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">借用流程圖一（待上傳 /public/booking-flow-1.png）</div>'
+                    }}
+                  />
+                </div>
+              </div>
+              {/* 借用流程圖 2 */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground text-center">流程圖二</h4>
+                <div className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border bg-muted">
+                  {/* TODO: 請將借用流程圖二命名為 booking-flow-2.png 並放入 public 資料夾 */}
+                  <Image
+                    src="/booking-flow-2.png"
+                    alt="借用流程圖二"
+                    width={1920}
+                    height={1080}
+                    className="w-full h-auto object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">借用流程圖二（待上傳 /public/booking-flow-2.png）</div>'
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -92,4 +344,3 @@ export default function RulesPage() {
     </div>
   )
 }
-

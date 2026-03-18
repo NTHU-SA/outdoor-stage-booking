@@ -6,6 +6,19 @@ export type ValidationResult = {
   message?: string
 }
 
+// Booking hours: 08:00 - 22:00
+export const BOOKING_START_HOUR = 8
+export const BOOKING_END_HOUR = 22
+
+// Max booking hours per day
+export const MAX_HOURS_PER_DAY = 4
+
+// Min advance days for booking (1 day before)
+export const MIN_ADVANCE_DAYS = 1
+
+// Max advance days for booking (1 month ≈ 30 days)
+export const MAX_ADVANCE_DAYS = 30
+
 export function validateBookingRules(
   startTime: Date,
   endTime: Date,
@@ -48,18 +61,61 @@ export function validateBookingRules(
     return Math.max(requestStart, startMins) < Math.min(requestEnd, endMins)
   }
 
-  // 1. Check user role for 3-day advance rule (Client-side pre-check)
+  // 1. Check booking time is within allowed hours (08:00 - 22:00)
+  if (!isAdmin) {
+    const startHour = startTime.getHours()
+    const startMin = startTime.getMinutes()
+    const endHour = endTime.getHours()
+    const endMin = endTime.getMinutes()
+
+    const startMins = startHour * 60 + startMin
+    const endMins = endHour * 60 + endMin
+
+    const allowedStart = BOOKING_START_HOUR * 60 // 480 (08:00)
+    const allowedEnd = BOOKING_END_HOUR * 60 // 1320 (22:00)
+
+    if (startMins < allowedStart || startMins >= allowedEnd) {
+      return { isValid: false, message: `借用時段為每日 ${BOOKING_START_HOUR}:00 至 ${BOOKING_END_HOUR}:00` }
+    }
+
+    if (endMins <= allowedStart || endMins > allowedEnd) {
+      return { isValid: false, message: `借用時段為每日 ${BOOKING_START_HOUR}:00 至 ${BOOKING_END_HOUR}:00` }
+    }
+  }
+
+  // 2. Check total duration does not exceed MAX_HOURS_PER_DAY
+  if (!isAdmin) {
+    const durationMs = endTime.getTime() - startTime.getTime()
+    const durationHours = durationMs / (1000 * 60 * 60)
+    if (durationHours > MAX_HOURS_PER_DAY) {
+      return { isValid: false, message: `一日最多借用 ${MAX_HOURS_PER_DAY} 小時` }
+    }
+  }
+
+  // 3. Check advance booking rule (1 day to 1 month before)
   if (!isAdmin) {
     const today = new Date()
     const minDate = new Date()
-    minDate.setDate(today.getDate() + 3)
+    minDate.setDate(today.getDate() + MIN_ADVANCE_DAYS)
     minDate.setHours(0, 0, 0, 0)
     
     if (startTime < minDate) {
-      return { isValid: false, message: "一般使用者需於 3 天前申請" }
+      return { isValid: false, message: `須於借用日前 ${MIN_ADVANCE_DAYS} 日提出申請` }
+    }
+
+    const maxDate = new Date()
+    maxDate.setDate(today.getDate() + MAX_ADVANCE_DAYS)
+    maxDate.setHours(23, 59, 59, 999)
+
+    if (startTime > maxDate) {
+      return { isValid: false, message: `最多僅能預約未來 ${MAX_ADVANCE_DAYS} 天內的日期` }
+    }
+
+    if (endTime > maxDate) {
+      return { isValid: false, message: `借用結束日期超出可預約範圍（${MAX_ADVANCE_DAYS} 天）` }
     }
     
-    // Check max-month limit for non-admins
+    // Also check semester-based bookable months if configured
     if (!isDateWithin4Months(startTime, maxBookableMonths)) {
       return { isValid: false, message: `一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期` }
     }
@@ -112,12 +168,13 @@ export function validateBookingRules(
 }
 
 export function generateTimeSlots() {
-  // Generate 30-minute interval time slots from 00:00 to 23:30 (24 hours)
-  return Array.from({ length: 48 }, (_, i) => {
-    const totalMinutes = i * 30 // Start from 00:00
+  // Generate 30-minute interval time slots from 08:00 to 22:00
+  const startSlot = BOOKING_START_HOUR * 2 // 16 (08:00)
+  const endSlot = BOOKING_END_HOUR * 2 // 44 (22:00)
+  return Array.from({ length: endSlot - startSlot + 1 }, (_, i) => {
+    const totalMinutes = (startSlot + i) * 30
     const hour = Math.floor(totalMinutes / 60)
     const minute = totalMinutes % 60
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
   })
 }
-
