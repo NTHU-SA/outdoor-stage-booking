@@ -2,7 +2,6 @@ import { getRoomById } from "@/utils/supabase/queries"
 import { notFound } from "next/navigation"
 import { SpaceBookingClient } from "./space-booking-client"
 import { createClient } from "@/utils/supabase/server"
-import type { SemesterSetting } from "@/utils/semester"
 
 export default async function SpaceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -13,14 +12,6 @@ export default async function SpaceDetailPage({ params }: { params: Promise<{ id
   }
 
   const supabase = await createClient()
-  
-  // Fetch semester settings
-  const { data: semesterData } = await supabase
-    .from('semester_settings')
-    .select('*')
-    .order('start_date', { ascending: true })
-  
-  const semesters: SemesterSetting[] = semesterData as SemesterSetting[] || []
 
   // Check if user is admin
   let isAdmin = false
@@ -44,7 +35,6 @@ export default async function SpaceDetailPage({ params }: { params: Promise<{ id
   return (
     <SpaceBookingClient 
       room={room} 
-      semesters={semesters} 
       isAdmin={isAdmin} 
     />
   )

@@ -1,5 +1,5 @@
 import { Room } from "@/utils/supabase/queries"
-import { SemesterSetting, getMaxBookableMonths, isDateWithin4Months, isDateInLockedPeriod, isDateInSemester } from "@/utils/semester"
+import { getMaxBookableMonths, isDateWithin4Months } from "@/utils/semester"
 
 export type ValidationResult = {
   isValid: boolean
@@ -24,10 +24,9 @@ export function validateBookingRules(
   endTime: Date,
   roomId: string,
   rooms: Room[],
-  semesters: SemesterSetting[],
   isAdmin: boolean
 ): ValidationResult {
-  const maxBookableMonths = getMaxBookableMonths(semesters)
+  const maxBookableMonths = getMaxBookableMonths()
 
   const iterateDays = (start: Date, end: Date, cb: (day: Date) => ValidationResult | null): ValidationResult | null => {
     const cursor = new Date(start)
@@ -123,15 +122,6 @@ export function validateBookingRules(
     if (!isDateWithin4Months(endTime, maxBookableMonths)) {
       return { isValid: false, message: `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）` }
     }
-    
-    // Check semester lock for non-admins (rules apply to all rooms now)
-    const lockedResult = iterateDays(startTime, endTime, (day) => {
-      if (isDateInLockedPeriod(day, semesters, false)) {
-        return { isValid: false, message: "下學期課表尚未確認，暫不開放預約" }
-      }
-      return null
-    })
-    if (lockedResult) return lockedResult
 
   }
 
@@ -139,10 +129,6 @@ export function validateBookingRules(
   const selectedRoom = rooms.find(r => r.id === roomId)
   if (selectedRoom?.unavailable_periods && Array.isArray(selectedRoom.unavailable_periods)) {
     const unavailableResult = iterateDays(startTime, endTime, (day) => {
-      // Only enforce unavailable periods in semester days
-      const isInSemester = semesters.some(semester => isDateInSemester(day, semester))
-      if (!isInSemester) return null
-
       const bookingDay = day.getDay()
 
       for (const period of selectedRoom.unavailable_periods ?? []) {

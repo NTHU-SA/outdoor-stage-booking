@@ -4,10 +4,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { 
   getMaxBookableMonths,
-  isDateWithin4Months, 
-  isDateInLockedPeriod,
-  isDateInSemester,
-  type SemesterSetting 
+  isDateWithin4Months
 } from '@/utils/semester'
 
 const createBookingSchema = z.object({
@@ -105,14 +102,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '此空間已停用' }, { status: 400 })
     }
 
-    // Fetch semester settings for date restrictions
-    const { data: semesterData } = await supabase
-      .from('semester_settings')
-      .select('*')
-      .order('start_date', { ascending: true })
-    
-    const semesters: SemesterSetting[] = semesterData || []
-    const maxBookableMonths = getMaxBookableMonths(semesters)
+    const maxBookableMonths = getMaxBookableMonths()
 
     // 1. Check booking time is within allowed hours (08:00 - 22:00)
     if (!isAdmin) {
@@ -176,18 +166,6 @@ export async function POST(request: Request) {
       if (!isDateWithin4Months(endTime, maxBookableMonths)) {
         return NextResponse.json({ error: `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）` }, { status: 400 })
       }
-      
-      // 5. Check semester lock for non-admins
-      const lockedError = iterateDays(startTime, endTime, (day) => {
-        if (isDateInLockedPeriod(day, semesters, false)) {
-          return '下學期課表尚未確認，暫不開放預約'
-        }
-        return null
-      })
-      if (lockedError) {
-        return NextResponse.json({ error: lockedError }, { status: 400 })
-      }
-
     }
 
     // 4. Check unavailable periods
@@ -196,9 +174,6 @@ export async function POST(request: Request) {
       const periods = room.unavailable_periods as UnavailablePeriod[]
 
       const unavailableError = iterateDays(startTime, endTime, (day) => {
-        const isInSemester = semesters.some(semester => isDateInSemester(day, semester))
-        if (!isInSemester) return null
-
         const bookingDay = day.getDay()
 
         for (const period of periods) {

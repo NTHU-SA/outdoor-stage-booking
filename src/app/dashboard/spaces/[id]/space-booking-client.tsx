@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Room } from "@/utils/supabase/queries"
-import { SemesterSetting } from "@/utils/semester"
 import { BookingWidget } from "./booking-widget"
 import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
 import { RoomDetailImage } from "./room-detail-image"
@@ -14,11 +13,10 @@ import { Users, Layers, ArrowLeft } from "lucide-react"
 
 type SpaceBookingClientProps = {
   room: Room
-  semesters: SemesterSetting[]
   isAdmin: boolean
 }
 
-export function SpaceBookingClient({ room, semesters, isAdmin }: SpaceBookingClientProps) {
+export function SpaceBookingClient({ room, isAdmin }: SpaceBookingClientProps) {
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
 
   return (
@@ -46,7 +44,6 @@ export function SpaceBookingClient({ room, semesters, isAdmin }: SpaceBookingCli
                 {/* Booking Widget */}
                 <BookingWidget 
                     room={room} 
-                    semesters={semesters} 
                     isAdmin={isAdmin}
                     selectedSlot={selectedSlot}
                     onChange={setSelectedSlot}

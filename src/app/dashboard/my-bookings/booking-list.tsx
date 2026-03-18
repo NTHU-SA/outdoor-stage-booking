@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Booking, Room } from "@/utils/supabase/queries"
-import { SemesterSetting } from "@/utils/semester"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
@@ -25,13 +24,12 @@ import { Label } from "@/components/ui/label"
 interface BookingListProps {
   bookings: Booking[]
   rooms: Room[]
-  semesterSettings: SemesterSetting[]
 }
 
 type SortField = 'room' | 'time' | 'created_at' | null
 type SortOrder = 'asc' | 'desc' | null
 
-export function BookingList({ bookings, rooms, semesterSettings }: BookingListProps) {
+export function BookingList({ bookings, rooms }: BookingListProps) {
   const [showHistory, setShowHistory] = useState(false)
 
   // Sorting state
@@ -186,7 +184,7 @@ export function BookingList({ bookings, rooms, semesterSettings }: BookingListPr
                         <EditBookingDialog
                           booking={booking}
                           rooms={rooms}
-                          semesterSettings={semesterSettings}
+
                         >
                           <Button variant="ghost" size="sm" className="h-8">
                             <Pencil className="h-4 w-4 mr-1" />

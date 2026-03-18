@@ -38,13 +38,9 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import type { Room } from "@/utils/supabase/queries"
 import { useEffect, useState } from "react"
-import type { SemesterSetting } from "@/utils/semester"
 import {
   getMaxBookableMonths,
   isDateWithin4Months,
-  isDateInLockedPeriod,
-  getCurrentSemester,
-  getNextSemester,
 } from "@/utils/semester"
 import { bookingFormSchema, BookingFormValues } from "./schema"
 import { validateBookingRules, generateTimeSlots, MIN_ADVANCE_DAYS, MAX_ADVANCE_DAYS } from "./utils"
@@ -54,16 +50,14 @@ type BookingFormProps = {
   selectedRoomId?: string
   onRoomChange?: (roomId: string) => void
   prefillSlot?: { start: Date; end: Date } | null
-  semesterSettings?: SemesterSetting[]
 }
 
-export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, semesterSettings = [] }: BookingFormProps) {
+export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }: BookingFormProps) {
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
   const [useSocket, setUseSocket] = useState(false)
-  const [semesters, setSemesters] = useState<SemesterSetting[]>(semesterSettings)
 
   const getDefaultBorrowingUnitKey = (userId: string | null) => `defaultBorrowingUnit:${userId ?? 'guest'}`
 
@@ -105,7 +99,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   }, [prefillSlot, form])
 
   useEffect(() => {
-    const checkUserRoleAndFetchSemesters = async () => {
+    const checkUserRole = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUserId(user?.id ?? null)
@@ -125,21 +119,9 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
           setIsAdmin(true)
         }
       }
-
-      // Fetch semester settings if not provided as props
-      if (semesterSettings.length === 0) {
-        const { data: semesterData } = await supabase
-          .from('semester_settings')
-          .select('*')
-          .order('start_date', { ascending: true })
-
-        if (semesterData) {
-          setSemesters(semesterData)
-        }
-      }
     }
-    checkUserRoleAndFetchSemesters()
-  }, [semesterSettings.length, form])
+    checkUserRole()
+  }, [form])
 
   async function onSubmit(values: BookingFormValues) {
     const startDateTime = new Date(values.startDate)
@@ -155,7 +137,6 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
       endDateTime,
       values.roomId,
       rooms,
-      semesters,
       isAdmin
     )
 
@@ -205,10 +186,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   const timeSlots = generateTimeSlots()
 
   // Get current and next semester for display
-  const currentSemester = getCurrentSemester(semesters)
-  const nextSemester = getNextSemester(semesters, currentSemester)
-  const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
-  const maxBookableMonths = getMaxBookableMonths(semesters)
+  const maxBookableMonths = getMaxBookableMonths()
 
   // Get selected room's type to determine if semester lock applies
   const watchedRoomId = form.watch("roomId")
@@ -219,22 +197,6 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* Warning banner for locked semester - not shown for Meeting rooms */}
-        {!isAdmin && isNextSemesterLocked && !isMeetingRoom && (
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-900 dark:text-amber-200">
-                  下學期課表尚未確認
-                </p>
-                <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
-                  {nextSemester.semester_name} ({format(new Date(nextSemester.start_date), 'MM/dd')} - {format(new Date(nextSemester.end_date), 'MM/dd')}) 暫不開放預約，請等待管理員開放。
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         <FormField
           control={form.control}
@@ -311,7 +273,6 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                           maxDate.setDate(today.getDate() + MAX_ADVANCE_DAYS)
                           if (date > maxDate) return true
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
-                          if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                         }
                         return false
                       }}
@@ -365,7 +326,6 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                           maxDate.setDate(today.getDate() + MAX_ADVANCE_DAYS)
                           if (date > maxDate) return true
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
-                          if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
                         }
                         // endDate must be >= startDate
                         if (watchedStartDate) {

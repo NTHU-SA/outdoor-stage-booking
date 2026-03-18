@@ -125,11 +125,11 @@ export function OverviewCalendar() {
           title: event.title,
           start: event.start,
           end: event.end,
-          backgroundColor: isPending ? adjustOpacity(color.bg, 0.6) : color.bg,
-          borderColor: color.border,
+          backgroundColor: isPending ? '#9ca3af' : color.bg, // bg-gray-400
+          borderColor: isPending ? '#4b5563' : color.border, // border-gray-600
           borderWidth: isPending ? '2px' : undefined,
           borderStyle: isPending ? 'dashed' : undefined,
-          textColor: '#ffffff',
+          textColor: isPending ? '#1f2937' : '#ffffff', // text-gray-800 for contrast
           extendedProps: {
             status: event.status,
             details: event.details,
@@ -178,6 +178,7 @@ export function OverviewCalendar() {
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           locale={zhTwLocale}
+          displayEventTime={false}
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
@@ -240,7 +241,7 @@ export function OverviewCalendar() {
           <span>已核准</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-blue-500/60 border border-dashed border-blue-600" />
+          <span className="inline-block h-3 w-3 rounded-sm bg-gray-400 border border-dashed border-gray-600" />
           <span>審核中</span>
         </div>
       </div>

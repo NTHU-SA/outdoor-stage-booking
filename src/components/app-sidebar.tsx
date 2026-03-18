@@ -73,11 +73,6 @@ const adminItems = [
     url: "/dashboard/admin/users",
     icon: Users,
   },
-  {
-    title: "系統設定",
-    url: "/dashboard/admin/settings",
-    icon: Cog,
-  },
 ]
 
 // Items for users who are room approvers (non-admin)
@@ -146,10 +141,10 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center px-4 py-2 group-data-[collapsible=icon]:px-0">
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-            <div className="relative h-8 w-full mb-3">
+            <div className="relative h-8 w-full mb-2">
               <Image src="/banner.png" alt="國立清華大學學生會" fill sizes="220px" className="object-contain object-left" />
             </div>
-            <span className="truncate text-xl font-semibold">野台借用系統</span>
+            <span className="truncate text-xl font-semibold text-[#B482BC]">野台借用系統</span>
           </div>
         </div>
       </SidebarHeader>

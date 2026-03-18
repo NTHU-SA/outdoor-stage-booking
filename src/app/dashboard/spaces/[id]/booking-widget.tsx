@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import type { Room } from "@/utils/supabase/queries"
-import type { SemesterSetting } from "@/utils/semester"
 import { validateBookingRules, generateTimeSlots } from "@/app/dashboard/book/utils"
 import { getOtherAreaBookingsDuring, type OtherAreaBookingStatus } from "@/app/actions/bookings"
 import {
@@ -38,20 +37,18 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   getMaxBookableMonths,
-  isDateWithin4Months,
-  isDateInLockedPeriod
+  isDateWithin4Months
 } from "@/utils/semester"
 import { useUser } from "@/hooks/use-user"
 
 type BookingWidgetProps = {
   room: Room
-  semesters: SemesterSetting[]
   isAdmin: boolean
   selectedSlot: { start: Date; end: Date } | null
   onChange: (slot: { start: Date; end: Date } | null) => void
 }
 
-export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange }: BookingWidgetProps) {
+export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: BookingWidgetProps) {
   const router = useRouter()
   const { user, loading } = useUser() // Check loading state to ensure auth is checked
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -138,7 +135,6 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
       selectedSlot.end,
       room.id,
       [room],
-      semesters,
       isAdmin
     )
 
@@ -318,7 +314,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
   const endTimeStr = selectedSlot
     ? format(selectedSlot.end, "HH:mm")
     : ""
-  const maxBookableMonths = getMaxBookableMonths(semesters)
+  const maxBookableMonths = getMaxBookableMonths()
 
   const isMeetingRoom = false
 
@@ -375,9 +371,6 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
 
                           // Max-month limit
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
-
-                          // Semester lock (rules apply to all rooms now)
-                          if (isDateInLockedPeriod(date, semesters, false)) return true
                         }
 
                         return false
@@ -426,7 +419,6 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
                           maxDate.setDate(today.getDate() + 30)
                           if (date > maxDate) return true
                           if (!isDateWithin4Months(date, maxBookableMonths)) return true
-                          if (isDateInLockedPeriod(date, semesters, false)) return true
                         }
 
                         if (selectedSlot) {

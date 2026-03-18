@@ -90,7 +90,7 @@ export async function getRoomBookings(roomId: string, excludeBookingId?: string)
 
     const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
     const unitName = booking.borrowing_unit ? booking.borrowing_unit.trim() : '個人借用者'
-    const displayUnit = `${unitName} (${userName})`
+    const displayUnit = unitName
 
     if (isAdmin) {
       title = displayUnit
@@ -180,7 +180,7 @@ export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
 
       const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
       const unitName = booking.borrowing_unit ? booking.borrowing_unit.trim() : '個人借用者'
-      const displayUnit = `${unitName} (${userName})`
+      const displayUnit = unitName
 
       if (isAdmin) {
         title = `[${roomName}] ${displayUnit}`

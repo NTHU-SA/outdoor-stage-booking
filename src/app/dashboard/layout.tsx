@@ -17,7 +17,7 @@ export default async function DashboardLayout({
           <SidebarTrigger className="size-8" />
           <div className="flex items-center gap-2">
             <Image src="/banner.png" height="200" width="200" alt="Logo" className="object-contain" />
-            <span className="font-semibold text-sm">野台借用系統</span>
+            <span className="font-semibold text-lg text-[#B482BC]">野台借用系統</span>
           </div>
         </div>
         <div className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">{children}</div>

@@ -10,22 +10,22 @@ export type Period = {
 }
 
 // Fixed periods definition based on requirements
-export const PERIODS = [
-  { id: '1', label: '08:00~08:50', start: '08:00', end: '08:50' },
-  { id: '2', label: '09:00~09:50', start: '09:00', end: '09:50' },
-  { id: '3', label: '10:10~11:00', start: '10:10', end: '11:00' },
-  { id: '4', label: '11:10~12:00', start: '11:10', end: '12:00' },
-  { id: 'n', label: '12:10~13:00', start: '12:10', end: '13:00' },
-  { id: '5', label: '13:20~14:10', start: '13:20', end: '14:10' },
-  { id: '6', label: '14:20~15:10', start: '14:20', end: '15:10' },
-  { id: '7', label: '15:30~16:20', start: '15:30', end: '16:20' },
-  { id: '8', label: '16:30~17:20', start: '16:30', end: '17:20' },
-  { id: '9', label: '17:30~18:20', start: '17:30', end: '18:20' },
-  { id: 'a', label: '18:30~19:20', start: '18:30', end: '19:20' },
-  { id: 'b', label: '19:30~20:20', start: '19:30', end: '20:20' },
-  { id: 'c', label: '20:30~21:20', start: '20:30', end: '21:20' },
-  { id: 'd', label: '21:30~22:20', start: '21:30', end: '22:20' },
-]
+export const PERIODS = Array.from({ length: 28 }, (_, i) => {
+  const startTotalMinutes = 8 * 60 + i * 30
+  const endTotalMinutes = startTotalMinutes + 30
+  
+  const startHour = Math.floor(startTotalMinutes / 60).toString().padStart(2, '0')
+  const startMin = (startTotalMinutes % 60).toString().padStart(2, '0')
+  const endHour = Math.floor(endTotalMinutes / 60).toString().padStart(2, '0')
+  const endMin = (endTotalMinutes % 60).toString().padStart(2, '0')
+  
+  return {
+    id: (i + 1).toString(),
+    label: `${startHour}:${startMin}~${endHour}:${endMin}`,
+    start: `${startHour}:${startMin}`,
+    end: `${endHour}:${endMin}`,
+  }
+})
 
 const DAYS = [
   { value: 1, label: '星期一' },
@@ -78,29 +78,29 @@ export function RoomAvailabilityTable({ value, onChange }: RoomAvailabilityTable
 
   return (
     <div className="border rounded-lg overflow-hidden shadow-sm bg-background">
-      <div className="grid grid-cols-[3rem_8rem_repeat(7,1fr)] bg-muted/50 text-sm font-semibold text-center border-b">
-        <div className="p-3 border-r">節次</div>
-        <div className="p-3 border-r">時間</div>
+      <div className="grid grid-cols-[2.5rem_7rem_repeat(7,1fr)] bg-muted/50 text-[13px] font-semibold text-center border-b">
+        <div className="p-2 border-r">節次</div>
+        <div className="p-2 border-r">時間</div>
         {DAYS.map((day) => (
-          <div key={day.value} className="p-3 border-r last:border-r-0">
+          <div key={day.value} className="p-2 border-r last:border-r-0">
             {day.label}
           </div>
         ))}
       </div>
-      <div className="text-sm max-h-[500px] overflow-y-auto">
+      <div className="text-[13px] max-h-[400px] overflow-y-auto">
         {PERIODS.map((period, idx) => (
           <div 
             key={period.id} 
             className={cn(
-              "grid grid-cols-[3rem_8rem_repeat(7,1fr)] transition-colors",
+              "grid grid-cols-[2.5rem_7rem_repeat(7,1fr)] transition-colors",
               idx % 2 === 0 ? "bg-background" : "bg-muted/20",
               "hover:bg-muted/40"
             )}
           >
-            <div className="p-3 border-r border-b text-center flex items-center justify-center font-medium text-muted-foreground">
+            <div className="p-1 border-r border-b text-center flex items-center justify-center font-medium text-muted-foreground">
               {period.id}
             </div>
-            <div className="p-3 border-r border-b text-center flex items-center justify-center text-muted-foreground text-xs">
+            <div className="p-1 border-r border-b text-center flex items-center justify-center text-muted-foreground text-[11px]">
               {period.label}
             </div>
             {DAYS.map((day) => {
@@ -109,14 +109,14 @@ export function RoomAvailabilityTable({ value, onChange }: RoomAvailabilityTable
                 <div
                   key={day.value}
                   className={cn(
-                    "p-3 border-r last:border-r-0 border-b flex items-center justify-center transition-colors",
+                    "p-1 border-r last:border-r-0 border-b flex items-center justify-center transition-colors",
                     checked && "bg-destructive/10"
                   )}
                 >
                   <Checkbox
                     checked={checked}
                     onCheckedChange={(c) => handleToggle(day.value, period, c === true)}
-                    className="h-5 w-5 data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
+                    className="h-4 w-4 data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
                   />
                 </div>
               )

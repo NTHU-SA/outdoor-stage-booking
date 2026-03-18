@@ -47,15 +47,10 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import type { Room } from "@/utils/supabase/queries"
 import type { Booking } from "@/utils/supabase/queries"
-import type { SemesterSetting } from "@/utils/semester"
 import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
 import {
   getMaxBookableMonths,
-  isDateWithin4Months,
-  isDateInLockedPeriod,
-  getCurrentSemester,
-  getNextSemester,
-  isDateInSemester
+  isDateWithin4Months
 } from "@/utils/semester"
 
 const bookingFormSchema = z.object({
@@ -99,15 +94,13 @@ const bookingFormSchema = z.object({
 type EditBookingDialogProps = {
   booking: Booking
   rooms: Room[]
-  semesterSettings?: SemesterSetting[]
   children: React.ReactNode
 }
 
-export function EditBookingDialog({ booking, rooms, semesterSettings = [], children }: EditBookingDialogProps) {
+export function EditBookingDialog({ booking, rooms, children }: EditBookingDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [semesters, setSemesters] = useState<SemesterSetting[]>(semesterSettings)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
   const router = useRouter()
 
@@ -179,9 +172,9 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     setSelectedSlot(slotInfo)
   }
 
-  // Check user role and fetch semesters
+  // Check user role
   useEffect(() => {
-    async function checkUserRoleAndFetchSemesters() {
+    async function checkUserRole() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -193,21 +186,10 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
           .single()
 
         setIsAdmin(profile?.role === 'admin')
-
-        if (semesterSettings.length === 0) {
-          const { data: semesterData } = await supabase
-            .from('semester_settings')
-            .select('*')
-            .order('start_date', { ascending: true })
-
-          if (semesterData) {
-            setSemesters(semesterData)
-          }
-        }
       }
     }
-    checkUserRoleAndFetchSemesters()
-  }, [semesterSettings.length])
+    checkUserRole()
+  }, [])
 
   async function onSubmit(values: z.infer<typeof bookingFormSchema>) {
     setIsLoading(true)
@@ -253,16 +235,9 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
       }
 
       // Check max-month limit
-      const maxBookableMonths = getMaxBookableMonths(semesters)
+      const maxBookableMonths = getMaxBookableMonths()
       if (!isDateWithin4Months(startDateTime, maxBookableMonths)) {
         toast.error(`一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期`)
-        setIsLoading(false)
-        return
-      }
-
-      // Check semester lock (rules apply to all rooms now)
-      if (isDateInLockedPeriod(startDateTime, semesters, false)) {
-        toast.error("下學期課表尚未確認，暫不開放預約")
         setIsLoading(false)
         return
       }
@@ -271,26 +246,21 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     // Check unavailable periods
     const selectedRoom = rooms.find(r => r.id === values.roomId)
     if (selectedRoom?.unavailable_periods && Array.isArray(selectedRoom.unavailable_periods)) {
-      // Check if the booking date falls within any semester
-      const isInSemester = semesters.some(semester => isDateInSemester(startDateTime, semester))
+      const bookingDay = startDateTime.getDay()
+      const requestStartMins = startHour * 60 + startMinute
+      const requestEndMins = endHour * 60 + endMinute
 
-      if (isInSemester) {
-        const bookingDay = startDateTime.getDay()
-        const requestStartMins = startHour * 60 + startMinute
-        const requestEndMins = endHour * 60 + endMinute
+      for (const period of selectedRoom.unavailable_periods) {
+        if (period.day === bookingDay) {
+          const [pStartH, pStartM] = period.start.split(':').map(Number)
+          const [pEndH, pEndM] = period.end.split(':').map(Number)
+          const periodStartMins = pStartH * 60 + pStartM
+          const periodEndMins = pEndH * 60 + pEndM
 
-        for (const period of selectedRoom.unavailable_periods) {
-          if (period.day === bookingDay) {
-            const [pStartH, pStartM] = period.start.split(':').map(Number)
-            const [pEndH, pEndM] = period.end.split(':').map(Number)
-            const periodStartMins = pStartH * 60 + pStartM
-            const periodEndMins = pEndH * 60 + pEndM
-
-            if (Math.max(requestStartMins, periodStartMins) < Math.min(requestEndMins, periodEndMins)) {
-              toast.error(`此空間 ${period.start}-${period.end} 不開放借用`)
-              setIsLoading(false)
-              return
-            }
+          if (Math.max(requestStartMins, periodStartMins) < Math.min(requestEndMins, periodEndMins)) {
+            toast.error(`此空間 ${period.start}-${period.end} 不開放借用`)
+            setIsLoading(false)
+            return
           }
         }
       }
@@ -336,10 +306,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
   })
 
   // Get current and next semester for display
-  const currentSemester = getCurrentSemester(semesters)
-  const nextSemester = getNextSemester(semesters, currentSemester)
-  const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
-  const maxBookableMonths = getMaxBookableMonths(semesters)
+  const maxBookableMonths = getMaxBookableMonths()
 
   // Get selected room's type to determine if semester lock applies
   const selectedRoomId = form.watch("roomId")
@@ -367,23 +334,6 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
               <div className="grid gap-6 lg:grid-cols-2">
                 {/* Left Column: Form */}
                 <div className="space-y-6">
-                  {/* Warning banner for locked semester - not shown for Meeting rooms */}
-                  {!isAdmin && isNextSemesterLocked && !isMeetingRoom && (
-                    <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-amber-900 dark:text-amber-200">
-                            下學期課表尚未確認
-                          </p>
-                          <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
-                            {nextSemester.semester_name} ({format(new Date(nextSemester.start_date), 'MM/dd')} - {format(new Date(nextSemester.end_date), 'MM/dd')}) 暫不開放預約，請等待管理員開放。
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
 
                   <FormField
                     control={form.control}
@@ -455,8 +405,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                                     const maxDate = new Date(today)
                                     maxDate.setDate(today.getDate() + 30)
                                     if (date > maxDate) return true
-                                    if (!isDateWithin4Months(date, maxBookableMonths)) return true
-                                    if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
+                                    if (!isDateWithin4Months(date, getMaxBookableMonths())) return true
                                   }
                                   return false
                                 }}
@@ -509,8 +458,7 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
                                     const maxDate = new Date(today)
                                     maxDate.setDate(today.getDate() + 30)
                                     if (date > maxDate) return true
-                                    if (!isDateWithin4Months(date, maxBookableMonths)) return true
-                                    if (!isMeetingRoom && isDateInLockedPeriod(date, semesters, false)) return true
+                                    if (!isDateWithin4Months(date, getMaxBookableMonths())) return true
                                   }
                                   if (watchedStartDate) {
                                     const startDay = new Date(watchedStartDate)
