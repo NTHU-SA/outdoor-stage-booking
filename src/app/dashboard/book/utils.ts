@@ -122,7 +122,21 @@ export function validateBookingRules(
     if (!isDateWithin4Months(endTime, maxBookableMonths)) {
       return { isValid: false, message: `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）` }
     }
+  }
 
+  // 4. Check for cross-day booking
+  const startDay = new Date(startTime)
+  startDay.setHours(0, 0, 0, 0)
+  const endDay = new Date(endTime)
+  const effectiveEnd = new Date(endTime)
+  if (effectiveEnd.getHours() === 0 && effectiveEnd.getMinutes() === 0 && effectiveEnd.getSeconds() === 0 && effectiveEnd > startTime) {
+    effectiveEnd.setDate(effectiveEnd.getDate() - 1)
+  }
+  endDay.setTime(effectiveEnd.getTime())
+  endDay.setHours(0, 0, 0, 0)
+
+  if (startDay.getTime() !== endDay.getTime()) {
+    return { isValid: false, message: "無法跨天借用" }
   }
 
   // Rule: Unavailable periods check

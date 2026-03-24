@@ -77,6 +77,15 @@ const bookingFormSchema = z.object({
     message: "事由至少需要 5 個字",
   }),
 }).refine((data) => {
+  const startDay = new Date(data.startDate)
+  startDay.setHours(0, 0, 0, 0)
+  const endDay = new Date(data.endDate)
+  endDay.setHours(0, 0, 0, 0)
+  return startDay.getTime() === endDay.getTime()
+}, {
+  message: "無法跨天借用",
+  path: ["endDate"],
+}).refine((data) => {
   const [startHour, startMinute] = data.startTime.split(':').map(Number)
   const [endHour, endMinute] = data.endTime.split(':').map(Number)
 
@@ -89,7 +98,7 @@ const bookingFormSchema = z.object({
   return endDateTime > startDateTime
 }, {
   message: "結束時間必須晚於開始時間",
-  path: ["endDate"],
+  path: ["endTime"],
 })
 
 type EditBookingDialogProps = {

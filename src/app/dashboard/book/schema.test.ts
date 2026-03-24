@@ -83,13 +83,13 @@ describe('bookingFormSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('should accept endDate after startDate', () => {
+  it('should reject endDate after startDate', () => {
     const result = bookingFormSchema.safeParse({
       ...validData,
       startDate: new Date(2024, 5, 20),
       endDate: new Date(2024, 5, 21),
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 
   // === Time refinement: on same day, endTime > startTime ===
@@ -115,7 +115,7 @@ describe('bookingFormSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('should allow endTime before startTime on different days', () => {
+  it('should reject booking on different days', () => {
     const result = bookingFormSchema.safeParse({
       ...validData,
       startDate: new Date(2024, 5, 20),
@@ -123,6 +123,6 @@ describe('bookingFormSchema', () => {
       startTime: '20:00',
       endTime: '08:00',
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 })

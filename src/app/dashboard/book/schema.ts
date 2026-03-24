@@ -23,14 +23,13 @@ export const bookingFormSchema = z.object({
     message: "事由至少需要 5 個字",
   }),
 }).refine((data) => {
-  // endDate must be >= startDate
-  const start = new Date(data.startDate)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(data.endDate)
-  end.setHours(0, 0, 0, 0)
-  return end >= start
+  const startDay = new Date(data.startDate)
+  startDay.setHours(0, 0, 0, 0)
+  const endDay = new Date(data.endDate)
+  endDay.setHours(0, 0, 0, 0)
+  return startDay.getTime() === endDay.getTime()
 }, {
-  message: "結束日期不能早於開始日期",
+  message: "無法跨天借用",
   path: ["endDate"],
 }).refine((data) => {
   const startDay = new Date(data.startDate)
