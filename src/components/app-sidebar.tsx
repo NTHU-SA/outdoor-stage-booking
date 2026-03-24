@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, CalendarDays, Home, Inbox, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList, LogIn } from "lucide-react"
+import { Calendar, CalendarDays, Home, Inbox, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, LogIn } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +16,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useUser } from "@/hooks/use-user"
+import { useAppPreferences } from "@/components/app-preferences-provider"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter, usePathname } from "next/navigation"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -26,50 +27,48 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 const items = [
   {
-    title: "借用規則",
+    titleKey: "sidebar.rules" as const,
     url: "/dashboard/rules",
     icon: BookOpen,
     highlight: true,
   },
   {
-    title: "總覽日曆",
+    titleKey: "sidebar.calendar" as const,
     url: "/dashboard/calendar",
     icon: CalendarDays,
     highlight: false,
   },
   {
-    title: "借用空間",
+    titleKey: "sidebar.spaces" as const,
     url: "/dashboard/spaces",
     icon: Home,
     highlight: false,
   },
-  // {
-  //   title: "預約空間(舊版)",
-  //   url: "/dashboard/book",
-  //   icon: PlusCircle,
-  // },
   {
-    title: "我的預約",
+    titleKey: "sidebar.myBookings" as const,
     url: "/dashboard/my-bookings",
     icon: Calendar,
   },
+  {
+    titleKey: "sidebar.settings" as const,
+    url: "/dashboard/settings",
+    icon: Cog,
+  },
 ]
-
-// removed reportItems
 
 const adminItems = [
   {
-    title: "預約管理",
+    titleKey: "sidebar.admin.approvals" as const,
     url: "/dashboard/admin/approvals",
     icon: Inbox,
   },
   {
-    title: "空間管理",
+    titleKey: "sidebar.admin.rooms" as const,
     url: "/dashboard/admin/rooms",
     icon: LayoutDashboard,
   },
   {
-    title: "人員管理",
+    titleKey: "sidebar.admin.users" as const,
     url: "/dashboard/admin/users",
     icon: Users,
   },
@@ -79,6 +78,7 @@ const adminItems = [
 
 export function AppSidebar() {
   const { user, loading } = useUser()
+  const { t } = useAppPreferences()
   const [isAdmin, setIsAdmin] = useState(false)
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -132,16 +132,16 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>野台借用</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("sidebar.section.booking")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items
                 .filter(item => {
-                  if (item.title === "我的預約" && !user) return false;
+                  if (item.url === "/dashboard/my-bookings" && !user) return false;
                   return true;
                 })
                 .map((item) => (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === item.url}
@@ -149,7 +149,7 @@ export function AppSidebar() {
                     >
                       <a href={item.url} onClick={handleMobileNavClick}>
                         <item.icon className={item.highlight ? "text-red-600 dark:text-red-400" : ""} />
-                        <span>{item.title}</span>
+                        <span>{t(item.titleKey)}</span>
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -158,19 +158,17 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-
-
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>管理員功能</SidebarGroupLabel>
+            <SidebarGroupLabel>{t("sidebar.section.admin")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={pathname === item.url}>
                       <a href={item.url} onClick={handleMobileNavClick}>
                         <item.icon />
-                        <span>{item.title}</span>
+                        <span>{t(item.titleKey)}</span>
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -179,8 +177,6 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
-
-
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -233,7 +229,7 @@ export function AppSidebar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 size-4" />
-                    登出
+                    {t("sidebar.signOut")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -243,8 +239,8 @@ export function AppSidebar() {
                   <LogIn className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">訪客</span>
-                  <span className="truncate text-xs">點此登入</span>
+                  <span className="truncate font-semibold">{t("sidebar.guest")}</span>
+                  <span className="truncate text-xs">{t("sidebar.clickToLogin")}</span>
                 </div>
               </SidebarMenuButton>
             )}

@@ -120,6 +120,12 @@ export function BookingDetailDialog({
                   </div>
                 )}
               </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">備註</Label>
+                <div className="mt-1 p-2 bg-muted/50 rounded-md text-sm whitespace-pre-wrap wrap-break-word max-h-[120px] overflow-y-auto">
+                  {booking.note?.trim() ? booking.note : '-'}
+                </div>
+              </div>
             </div>
           </div>
 

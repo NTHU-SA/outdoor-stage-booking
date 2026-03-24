@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { format } from "date-fns"
+import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -16,7 +17,14 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import type { Room } from "@/utils/supabase/queries"
-import { validateBookingRules, generateTimeSlots } from "@/app/dashboard/book/utils"
+import {
+  validateBookingRules,
+  generateTimeSlots,
+  expandRepeatedSlotsForList,
+  hasOverlappingSlots,
+  mergeUniqueSlots,
+  type RepeatPattern,
+} from "@/app/dashboard/book/utils"
 import { getOtherAreaBookingsDuring, type OtherAreaBookingStatus, checkBookingOverlap } from "@/app/actions/bookings"
 import {
   Select,
@@ -40,26 +48,33 @@ import {
   isDateWithin4Months
 } from "@/utils/semester"
 import { useUser } from "@/hooks/use-user"
+import { useAppPreferences } from "@/components/app-preferences-provider"
 
 type BookingWidgetProps = {
   room: Room
   isAdmin: boolean
   selectedSlot: { start: Date; end: Date } | null
   onChange: (slot: { start: Date; end: Date } | null) => void
+  onRecordedSlotsChange?: (slots: Array<{ start: Date; end: Date }>) => void
 }
 
-export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: BookingWidgetProps) {
+export function BookingWidget({ room, isAdmin, selectedSlot, onChange, onRecordedSlotsChange }: BookingWidgetProps) {
   const router = useRouter()
+  const { t } = useAppPreferences()
   const { user, loading } = useUser() // Check loading state to ensure auth is checked
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [borrowingUnit, setBorrowingUnit] = useState("")
   const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
   const [purpose, setPurpose] = useState("")
+  const [note, setNote] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [useSocket, setUseSocket] = useState(false)
   const [otherAreaBookings, setOtherAreaBookings] = useState<OtherAreaBookingStatus[]>([])
   const [loadingOtherAreaBookings, setLoadingOtherAreaBookings] = useState(false)
   const [isValidatingSlot, setIsValidatingSlot] = useState(false)
+  const [extraSlots, setExtraSlots] = useState<Array<{ start: Date; end: Date }>>([])
+  const [repeatPattern, setRepeatPattern] = useState<RepeatPattern>("none")
+  const [repeatUntil, setRepeatUntil] = useState<Date | undefined>(undefined)
 
   const getDefaultBorrowingUnitKey = (userId: string | null | undefined) => `defaultBorrowingUnit:${userId ?? 'guest'}`
 
@@ -75,7 +90,17 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
     const storedBooking = localStorage.getItem(`pendingBooking_${room.id}`)
     if (storedBooking) {
       try {
-        const { start, end, purpose: storedPurpose, borrowingUnit: storedBorrowingUnit, useSocket: storedUseSocket } = JSON.parse(storedBooking)
+        const {
+          start,
+          end,
+          purpose: storedPurpose,
+          note: storedNote,
+          borrowingUnit: storedBorrowingUnit,
+          useSocket: storedUseSocket,
+          extraSlots: storedExtraSlots,
+          repeatPattern: storedRepeatPattern,
+          repeatUntil: storedRepeatUntil,
+        } = JSON.parse(storedBooking)
         const startDate = new Date(start)
         const endDate = new Date(end)
 
@@ -84,7 +109,17 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
           onChange({ start: startDate, end: endDate })
           if (storedBorrowingUnit) setBorrowingUnit(storedBorrowingUnit)
           if (storedPurpose) setPurpose(storedPurpose)
+          if (storedNote) setNote(storedNote)
           if (storedUseSocket) setUseSocket(storedUseSocket)
+          if (Array.isArray(storedExtraSlots)) {
+            setExtraSlots(storedExtraSlots.map((slot) => ({ start: new Date(slot.start), end: new Date(slot.end) })))
+          }
+          if (storedRepeatPattern === 'daily' || storedRepeatPattern === 'weekly' || storedRepeatPattern === 'none') {
+            setRepeatPattern(storedRepeatPattern)
+          }
+          if (storedRepeatUntil) {
+            setRepeatUntil(new Date(storedRepeatUntil))
+          }
 
           // If user is logged in, open the dialog automatically to continue
           // If not logged in, just filling the form is enough (they will hit reserve again)
@@ -123,6 +158,10 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
 
     fetchOtherAreaBookings()
   }, [isDialogOpen, selectedSlot, room.id])
+
+  useEffect(() => {
+    onRecordedSlotsChange?.(extraSlots)
+  }, [extraSlots, onRecordedSlotsChange])
 
   const handleReserveClick = async () => {
     // Removed user check here to allow guests to click reserve and enter details
@@ -175,7 +214,14 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
           end: selectedSlot.end.toISOString(),
           borrowingUnit,
           purpose,
-          useSocket
+          note,
+          useSocket,
+          extraSlots: extraSlots.map((slot) => ({
+            start: slot.start.toISOString(),
+            end: slot.end.toISOString(),
+          })),
+          repeatPattern,
+          repeatUntil: repeatUntil?.toISOString() ?? null,
         }
         localStorage.setItem(`pendingBooking_${room.id}`, JSON.stringify(bookingData))
       }
@@ -188,7 +234,11 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
       return
     }
 
-    if (!selectedSlot) return
+    const baseSlot = selectedSlot ?? extraSlots[0] ?? null
+    if (!baseSlot) {
+      toast.error("請先加入至少一個預約時段")
+      return
+    }
     if (borrowingUnit.trim().length < 1) {
       toast.error("請輸入借用單位")
       return
@@ -202,6 +252,39 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
       localStorage.setItem(getDefaultBorrowingUnitKey(user?.id), borrowingUnit.trim())
     }
 
+    const manualSlots = mergeUniqueSlots([
+      ...extraSlots,
+      ...(selectedSlot ? [{ start: selectedSlot.start, end: selectedSlot.end }] : []),
+    ])
+
+    const repeatedSlots = expandRepeatedSlotsForList(manualSlots, repeatPattern, repeatUntil)
+    if (repeatedSlots === null) {
+      toast.error("請選擇重複借用的截止日期")
+      return
+    }
+
+    const allSlots = mergeUniqueSlots(repeatedSlots)
+
+    if (hasOverlappingSlots(allSlots)) {
+      toast.error("送出的多個時段彼此重疊，請調整後再送出")
+      return
+    }
+
+    for (let i = 0; i < allSlots.length; i += 1) {
+      const validation = validateBookingRules(
+        allSlots[i].start,
+        allSlots[i].end,
+        room.id,
+        [room],
+        isAdmin
+      )
+      if (!validation.isValid) {
+        const prefix = allSlots.length > 1 ? `第 ${i + 1} 筆時段：` : ""
+        toast.error(`${prefix}${validation.message}`)
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
       const finalPurpose = purpose.trim() + (useSocket ? "\n(需要使用插座)" : "")
@@ -213,9 +296,12 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
         body: JSON.stringify({
           roomId: room.id,
           borrowingUnit,
-          startTime: selectedSlot.start.toISOString(),
-          endTime: selectedSlot.end.toISOString(),
+          slots: allSlots.map((slot) => ({
+            startTime: slot.start.toISOString(),
+            endTime: slot.end.toISOString(),
+          })),
           purpose: finalPurpose,
+          note: note.trim() || null,
         }),
       })
 
@@ -224,11 +310,15 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
         throw new Error(errorData.error || '預約失敗')
       }
 
-      toast.success("預約申請已送出")
+      toast.success(allSlots.length > 1 ? `已送出 ${allSlots.length} 筆預約申請` : "預約申請已送出")
       setIsDialogOpen(false)
       setBorrowingUnit("")
       setPurpose("")
+      setNote("")
       setUseSocket(false)
+      setExtraSlots([])
+      setRepeatPattern("none")
+      setRepeatUntil(undefined)
       onChange(null)
       // Clear any stored booking data just in case
       localStorage.removeItem(`pendingBooking_${room.id}`)
@@ -336,6 +426,89 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
   const maxBookableMonths = getMaxBookableMonths()
 
   const isMeetingRoom = false
+
+  const plannedSlots = useMemo(() => {
+    const manualSlots = mergeUniqueSlots([
+      ...extraSlots,
+      ...(selectedSlot ? [{ start: selectedSlot.start, end: selectedSlot.end }] : []),
+    ])
+
+    const repeatedSlots = expandRepeatedSlotsForList(manualSlots, repeatPattern, repeatUntil)
+
+    if (repeatedSlots === null) {
+      return manualSlots
+    }
+
+    return mergeUniqueSlots(repeatedSlots)
+  }, [extraSlots, repeatPattern, repeatUntil, selectedSlot])
+
+  const handleAddCurrentSlot = () => {
+    if (!selectedSlot) {
+      toast.error("請先選擇一個時段")
+      return
+    }
+
+    const validation = validateBookingRules(
+      selectedSlot.start,
+      selectedSlot.end,
+      room.id,
+      [room],
+      isAdmin
+    )
+
+    if (!validation.isValid) {
+      toast.error(validation.message)
+      return
+    }
+
+    const duplicate = extraSlots.some((slot) => {
+      const exactMatch = slot.start.getTime() === selectedSlot.start.getTime() && slot.end.getTime() === selectedSlot.end.getTime()
+      const containedByExisting = slot.start.getTime() <= selectedSlot.start.getTime() && slot.end.getTime() >= selectedSlot.end.getTime()
+      return exactMatch || containedByExisting
+    })
+    if (duplicate) {
+      toast.error("此時段已在清單中")
+      return
+    }
+
+    setExtraSlots((prev) => [...prev, { start: new Date(selectedSlot.start), end: new Date(selectedSlot.end) }])
+    onChange(null)
+    toast.success("已加入時段清單")
+  }
+
+  const handleMultiSlotReserveClick = () => {
+    if (extraSlots.length === 0 && !selectedSlot) {
+      toast.error("請先在多時段清單加入至少一筆時段")
+      return
+    }
+
+    if (plannedSlots.length === 0) {
+      toast.error("目前沒有可送出的時段")
+      return
+    }
+
+    if (hasOverlappingSlots(plannedSlots)) {
+      toast.error("送出的多個時段彼此重疊，請調整後再送出")
+      return
+    }
+
+    for (let i = 0; i < plannedSlots.length; i += 1) {
+      const validation = validateBookingRules(
+        plannedSlots[i].start,
+        plannedSlots[i].end,
+        room.id,
+        [room],
+        isAdmin
+      )
+      if (!validation.isValid) {
+        const prefix = plannedSlots.length > 1 ? `第 ${i + 1} 筆時段：` : ""
+        toast.error(`${prefix}${validation.message}`)
+        return
+      }
+    }
+
+    setIsDialogOpen(true)
+  }
 
   return (
     <>
@@ -494,8 +667,47 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
             onClick={handleReserveClick}
             disabled={!selectedSlot || isValidatingSlot}
           >
-            {isValidatingSlot ? "檢查時段中..." : "預約"}
+            {isValidatingSlot ? "檢查時段中..." : t("widget.singleBooking")}
           </Button>
+
+          <div className="space-y-3 rounded-lg border border-dashed p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-muted-foreground">多時段清單</p>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddCurrentSlot} disabled={!selectedSlot}>
+                <Plus className="mr-1 h-4 w-4" />
+                加入目前時段
+              </Button>
+            </div>
+            {extraSlots.length === 0 ? (
+              <p className="text-xs text-muted-foreground">尚未加入額外時段。</p>
+            ) : (
+              <div className="space-y-1">
+                {extraSlots.map((slot, index) => (
+                  <div key={`${slot.start.toISOString()}-${slot.end.toISOString()}`} className="flex items-center justify-between rounded border px-2 py-1 text-xs">
+                    <span>{index + 1}. {format(slot.start, "MM/dd HH:mm")} - {format(slot.end, "HH:mm")}</span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setExtraSlots((prev) => prev.filter((_, idx) => idx !== index))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              className="w-full bg-[#14B8A6] hover:bg-[#0f9f90] text-white"
+              onClick={handleMultiSlotReserveClick}
+              disabled={extraSlots.length === 0 && !selectedSlot}
+            >
+              {t("widget.multiBooking")}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -504,12 +716,26 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
           <DialogHeader>
             <DialogTitle>確認預約資訊</DialogTitle>
             <DialogDescription>
-              {room.name} <br />
-              {selectedSlot && format(selectedSlot.start, "yyyy/MM/dd HH:mm")} - {selectedSlot && format(selectedSlot.end, "yyyy/MM/dd HH:mm")}
+              {room.name}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>本次預約時段清單</Label>
+              <div className="rounded-md border p-3 space-y-2 max-h-44 overflow-y-auto">
+                {plannedSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">尚無可送出的時段</p>
+                ) : (
+                  plannedSlots.map((slot, index) => (
+                    <p key={`${slot.start.toISOString()}-${slot.end.toISOString()}`} className="text-sm">
+                      {index + 1}. {format(slot.start, "yyyy/MM/dd HH:mm")} - {format(slot.end, "yyyy/MM/dd HH:mm")}
+                    </p>
+                  ))
+                )}
+              </div>
+            </div>
+
             <div className="grid gap-2">
               <Label>同時段其他野台區域借用狀況</Label>
               <div className="rounded-md border p-3 space-y-2 max-h-44 overflow-y-auto">
@@ -563,6 +789,79 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
                 onChange={(e) => setPurpose(e.target.value)}
                 rows={4}
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="booking-note">備註（選填）</Label>
+              <Textarea
+                id="booking-note"
+                placeholder="補充說明"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>固定重複借用</Label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Select value={repeatPattern} onValueChange={(value: RepeatPattern) => setRepeatPattern(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇重複頻率" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">不重複</SelectItem>
+                    <SelectItem value="daily">每日重複</SelectItem>
+                    <SelectItem value="weekly">每週重複</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {repeatPattern !== 'none' && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "justify-start text-left font-normal",
+                          !repeatUntil && "text-muted-foreground"
+                        )}
+                      >
+                        {repeatUntil ? format(repeatUntil, "yyyy/MM/dd") : "選擇截止日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={repeatUntil}
+                        onSelect={setRepeatUntil}
+                        disabled={(date) => {
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
+
+                          if (!isAdmin && date < today) return true
+                          if (!isAdmin) {
+                            const minDate = new Date(today)
+                            minDate.setDate(today.getDate() + 1)
+                            if (date < minDate) return true
+                            const maxDate = new Date(today)
+                            maxDate.setDate(today.getDate() + 30)
+                            if (date > maxDate) return true
+                            if (!isDateWithin4Months(date, maxBookableMonths)) return true
+                          }
+                          if (selectedSlot) {
+                            const startDay = new Date(selectedSlot.start)
+                            startDay.setHours(0, 0, 0, 0)
+                            if (date < startDay) return true
+                          }
+
+                          return false
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
           </div>
 

@@ -28,6 +28,7 @@ export type Booking = {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
   borrowing_unit?: string | null
   purpose: string | null
+  note?: string | null
   user: {
     full_name: string
     student_id: string | null
@@ -176,6 +177,7 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
             </TableHead>
             <TableHead className="w-[140px]">借用單位</TableHead>
             <TableHead className="w-[200px]">事由</TableHead>
+            <TableHead className="w-[180px]">備註</TableHead>
             <TableHead className="text-left w-[140px]">
               <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
                 申請時間
@@ -189,7 +191,7 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
         <TableBody>
           {sortedBookings.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
+              <TableCell colSpan={9} className="text-center text-muted-foreground h-24">
                 {showHistory ? "目前沒有符合條件的預約" : "目前無有效預約，請開啟歷史紀錄查看過往預約"}
               </TableCell>
             </TableRow>
@@ -230,6 +232,9 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                       </span>
                     )}
                   </div>
+                </TableCell>
+                <TableCell className="max-w-[180px] truncate" title={booking.note || ''}>
+                  {booking.note?.trim() || '-'}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground text-left">
                   {format(toTaipeiTime(booking.created_at), "MM/dd HH:mm")}

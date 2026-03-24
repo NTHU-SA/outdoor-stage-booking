@@ -1,12 +1,27 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import Image from "next/image"
+import { useTheme } from "next-themes"
 import { AlertTriangle, Clock, Users, MapPin, Zap, Ban, Mail } from "lucide-react"
 
 export default function RulesPage() {
   const SA_EMAIL = "nthusa@gapp.nthu.edu.tw"
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const isDarkMode = mounted && resolvedTheme === "dark"
+  const flowImage = isDarkMode
+    ? { src: "/booking-flow-2.png", alt: "借用流程圖", label: "流程圖" }
+    : { src: "/booking-flow-1.png", alt: "借用流程圖", label: "流程圖" }
 
   return (
     <div className="space-y-6">
@@ -142,10 +157,14 @@ export default function RulesPage() {
           {/* 野台位置示意圖 placeholder */}
           <div className="mt-4">
             <h4 className="text-sm font-semibold mb-2">野台位置示意圖</h4>
-            <div className="relative w-full md:max-w-lg mx-auto rounded-lg overflow-hidden border bg-muted">
-              {/* TODO: 請將野台位置示意圖命名為 stage-location-map.png 並放入 public 資料夾 */}
+            <button
+              type="button"
+              onClick={() => setPreviewImage({ src: "/outstage-location-map.png", alt: "野台位置示意圖" })}
+              className="relative block w-full md:max-w-lg mx-auto rounded-lg overflow-hidden border bg-transparent cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="點擊查看野台位置示意圖大圖"
+            >
               <Image
-                src="/stage-location-map.png"
+                src="/outstage-location-map.png"
                 alt="野台位置示意圖"
                 width={1920}
                 height={1080}
@@ -154,10 +173,10 @@ export default function RulesPage() {
                   // Hide broken image - will show placeholder
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
-                  target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">野台位置示意圖（待上傳 /public/stage-location-map.png）</div>'
+                  target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">野台位置示意圖（待上傳 /public/outstage-location-map.png）</div>'
                 }}
               />
-            </div>
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -298,49 +317,48 @@ export default function RulesPage() {
           {/* 借用流程圖 placeholders */}
           <div className="border-t pt-6 space-y-6">
             <h3 className="text-lg font-semibold">完整借用流程圖</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* 借用流程圖 1 */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground text-center">流程圖一</h4>
-                <div className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border bg-muted">
-                  {/* TODO: 請將借用流程圖一命名為 booking-flow-1.png 並放入 public 資料夾 */}
-                  <Image
-                    src="/booking-flow-1.png"
-                    alt="借用流程圖一"
-                    width={1920}
-                    height={1080}
-                    className="w-full h-auto object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.style.display = 'none'
-                      target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">借用流程圖一（待上傳 /public/booking-flow-1.png）</div>'
-                    }}
-                  />
-                </div>
-              </div>
-              {/* 借用流程圖 2 */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground text-center">流程圖二</h4>
-                <div className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border bg-muted">
-                  {/* TODO: 請將借用流程圖二命名為 booking-flow-2.png 並放入 public 資料夾 */}
-                  <Image
-                    src="/booking-flow-2.png"
-                    alt="借用流程圖二"
-                    width={1920}
-                    height={1080}
-                    className="w-full h-auto object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.style.display = 'none'
-                      target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">借用流程圖二（待上傳 /public/booking-flow-2.png）</div>'
-                    }}
-                  />
-                </div>
-              </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground text-center">{flowImage.label}</h4>
+              <button
+                type="button"
+                onClick={() => setPreviewImage({ src: flowImage.src, alt: flowImage.alt })}
+                className="relative block w-full max-w-xl mx-auto rounded-lg overflow-hidden border bg-muted cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`點擊查看${flowImage.label}大圖`}
+              >
+                <Image
+                  src={flowImage.src}
+                  alt={flowImage.alt}
+                  width={1920}
+                  height={1080}
+                  className="w-full h-auto object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">借用流程圖（待上傳 /public/booking-flow-1.png 或 /public/booking-flow-2.png）</div>'
+                  }}
+                />
+              </button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-5xl p-2">
+          <DialogTitle className="sr-only">圖片預覽</DialogTitle>
+          {previewImage && (
+            <div className="w-full max-h-[85vh] overflow-auto">
+              <Image
+                src={previewImage.src}
+                alt={previewImage.alt}
+                width={2400}
+                height={1400}
+                className="w-full h-auto object-contain rounded-md"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppFooter } from "@/components/app-footer";
+import { AppPreferencesProvider } from "@/components/app-preferences-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -46,18 +47,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-TW" className="h-full">
+    <html lang="en" className="h-full">
       <body
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
-        <div className="flex-1">
-          {children}
-        </div>
-        <AppFooter />
-        <Toaster richColors />
-        <Analytics />
-        <SpeedInsights />
+        <AppPreferencesProvider>
+          <div className="flex-1">
+            {children}
+          </div>
+          <AppFooter />
+          <Toaster richColors />
+          <Analytics />
+          <SpeedInsights />
+        </AppPreferencesProvider>
       </body>
     </html>
   );

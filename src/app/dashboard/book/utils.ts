@@ -6,6 +6,15 @@ export type ValidationResult = {
   message?: string
 }
 
+export type BookingSlot = {
+  start: Date
+  end: Date
+}
+
+export type RepeatPattern = 'none' | 'daily' | 'weekly'
+
+export const MAX_BATCH_SLOTS = 50
+
 // Booking hours: 08:00 - 22:00
 export const BOOKING_START_HOUR = 8
 export const BOOKING_END_HOUR = 22
@@ -177,4 +186,116 @@ export function generateTimeSlots(isAdmin: boolean = false) {
     const minute = totalMinutes % 60
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
   })
+}
+
+export function buildDateTime(date: Date, time: string) {
+  const [hour, minute] = time.split(':').map(Number)
+  const dateTime = new Date(date)
+  dateTime.setHours(hour, minute, 0, 0)
+  return dateTime
+}
+
+export function hasOverlappingSlots(slots: BookingSlot[]) {
+  const sorted = [...slots].sort((a, b) => a.start.getTime() - b.start.getTime())
+  for (let i = 1; i < sorted.length; i += 1) {
+    if (sorted[i - 1].end > sorted[i].start) {
+      return true
+    }
+  }
+  return false
+}
+
+export function mergeUniqueSlots(slots: BookingSlot[]) {
+  const deduped = new Map<string, BookingSlot>()
+  for (const slot of slots) {
+    const key = `${slot.start.toISOString()}|${slot.end.toISOString()}`
+    deduped.set(key, slot)
+  }
+  return Array.from(deduped.values()).sort((a, b) => a.start.getTime() - b.start.getTime())
+}
+
+export function expandRepeatedSlots(
+  baseStart: Date,
+  baseEnd: Date,
+  repeatPattern: RepeatPattern,
+  repeatUntil?: Date,
+  maxSlots: number = MAX_BATCH_SLOTS,
+): BookingSlot[] | null {
+  if (repeatPattern === 'none') {
+    return [{ start: baseStart, end: baseEnd }]
+  }
+
+  if (!repeatUntil) {
+    return null
+  }
+
+  const intervalDays = repeatPattern === 'daily' ? 1 : 7
+  const slots: BookingSlot[] = []
+  let cursorStart = new Date(baseStart)
+  let cursorEnd = new Date(baseEnd)
+
+  const untilDay = new Date(repeatUntil)
+  untilDay.setHours(23, 59, 59, 999)
+
+  while (cursorStart <= untilDay && slots.length < maxSlots) {
+    slots.push({
+      start: new Date(cursorStart),
+      end: new Date(cursorEnd),
+    })
+    cursorStart = new Date(cursorStart)
+    cursorEnd = new Date(cursorEnd)
+    cursorStart.setDate(cursorStart.getDate() + intervalDays)
+    cursorEnd.setDate(cursorEnd.getDate() + intervalDays)
+  }
+
+  return slots
+}
+
+export function expandRepeatedSlotsForList(
+  baseSlots: BookingSlot[],
+  repeatPattern: RepeatPattern,
+  repeatUntil?: Date,
+  maxSlots: number = MAX_BATCH_SLOTS,
+): BookingSlot[] | null {
+  const normalizedBaseSlots = mergeUniqueSlots(baseSlots)
+
+  if (normalizedBaseSlots.length === 0) {
+    return []
+  }
+
+  if (repeatPattern === 'none') {
+    return normalizedBaseSlots
+  }
+
+  if (!repeatUntil) {
+    return null
+  }
+
+  const intervalDays = repeatPattern === 'daily' ? 1 : 7
+  const untilDay = new Date(repeatUntil)
+  untilDay.setHours(23, 59, 59, 999)
+
+  const expanded: BookingSlot[] = []
+
+  for (const baseSlot of normalizedBaseSlots) {
+    let cursorStart = new Date(baseSlot.start)
+    let cursorEnd = new Date(baseSlot.end)
+
+    while (cursorStart <= untilDay && expanded.length < maxSlots) {
+      expanded.push({
+        start: new Date(cursorStart),
+        end: new Date(cursorEnd),
+      })
+      cursorStart = new Date(cursorStart)
+      cursorEnd = new Date(cursorEnd)
+      cursorStart.setDate(cursorStart.getDate() + intervalDays)
+      cursorEnd.setDate(cursorEnd.getDate() + intervalDays)
+    }
+
+    if (expanded.length >= maxSlots) {
+      break
+    }
+  }
+
+  return mergeUniqueSlots(expanded)
 }

@@ -17,12 +17,13 @@ type RoomTimetableProps = {
   roomId: string
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void
   selectedSlot?: { start: Date; end: Date } | null
+  recordedSlots?: Array<{ start: Date; end: Date }>
   excludeBookingId?: string
   focusDate?: Date
   isAdmin?: boolean
 }
 
-export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate, isAdmin }: RoomTimetableProps) {
+export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, recordedSlots, excludeBookingId, focusDate, isAdmin }: RoomTimetableProps) {
   const [events, setEvents] = useState<TimetableEvent[]>([])
   const [loading, setLoading] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
@@ -92,6 +93,21 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
       textColor: 'white',
       display: 'block',
       classNames: ['selected-slot-event'],
+    })
+  }
+
+  if (recordedSlots && recordedSlots.length > 0) {
+    recordedSlots.forEach((slot, index) => {
+      calendarEvents.push({
+        id: `recorded-slot-${index}-${slot.start.toISOString()}`,
+        title: '清單已記錄',
+        start: slot.start,
+        end: slot.end,
+        backgroundColor: '#14b8a6',
+        borderColor: '#0f766e',
+        textColor: '#ffffff',
+        display: 'block',
+      })
     })
   }
 

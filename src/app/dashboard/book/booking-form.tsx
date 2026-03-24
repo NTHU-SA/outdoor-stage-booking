@@ -2,8 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { CalendarIcon, AlertTriangle } from "lucide-react"
+import { CalendarIcon, Plus, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
 
@@ -43,21 +42,35 @@ import {
   isDateWithin4Months,
 } from "@/utils/semester"
 import { bookingFormSchema, BookingFormValues } from "./schema"
-import { validateBookingRules, generateTimeSlots, MIN_ADVANCE_DAYS, MAX_ADVANCE_DAYS } from "./utils"
+import {
+  validateBookingRules,
+  generateTimeSlots,
+  MIN_ADVANCE_DAYS,
+  MAX_ADVANCE_DAYS,
+  buildDateTime,
+  hasOverlappingSlots,
+  expandRepeatedSlotsForList,
+  mergeUniqueSlots,
+} from "./utils"
 
 type BookingFormProps = {
   rooms: Room[]
   selectedRoomId?: string
   onRoomChange?: (roomId: string) => void
   prefillSlot?: { start: Date; end: Date } | null
+  onRecordedSlotsChange?: (slots: Array<{ start: Date; end: Date }>) => void
+  onClearSelectedSlot?: () => void
 }
 
-export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }: BookingFormProps) {
+export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, onRecordedSlotsChange, onClearSelectedSlot }: BookingFormProps) {
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [rememberBorrowingUnit, setRememberBorrowingUnit] = useState(false)
   const [useSocket, setUseSocket] = useState(false)
+  const [extraSlots, setExtraSlots] = useState<Array<{ start: Date; end: Date }>>([])
+  const [repeatPattern, setRepeatPattern] = useState<"none" | "daily" | "weekly">("none")
+  const [repeatUntil, setRepeatUntil] = useState<Date | undefined>(undefined)
 
   const getDefaultBorrowingUnitKey = (userId: string | null) => `defaultBorrowingUnit:${userId ?? 'guest'}`
 
@@ -66,6 +79,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
     defaultValues: {
       borrowingUnit: "",
       purpose: "",
+      note: "",
       roomId: selectedRoomId || "",
     },
   })
@@ -123,14 +137,19 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
     checkUserRole()
   }, [form])
 
-  async function onSubmit(values: BookingFormValues) {
-    const startDateTime = new Date(values.startDate)
-    const [startHour, startMinute] = values.startTime.split(':').map(Number)
-    startDateTime.setHours(startHour, startMinute, 0, 0)
+  useEffect(() => {
+    onRecordedSlotsChange?.(extraSlots)
+  }, [extraSlots, onRecordedSlotsChange])
 
-    const endDateTime = new Date(values.endDate)
-    const [endHour, endMinute] = values.endTime.split(':').map(Number)
-    endDateTime.setHours(endHour, endMinute, 0, 0)
+  const handleAddCurrentSlot = () => {
+    const values = form.getValues()
+    if (!values.startDate || !values.endDate || !values.startTime || !values.endTime) {
+      toast.error("請先選擇完整日期與時間")
+      return
+    }
+
+    const startDateTime = buildDateTime(values.startDate, values.startTime)
+    const endDateTime = buildDateTime(values.endDate, values.endTime)
 
     const validation = validateBookingRules(
       startDateTime,
@@ -143,6 +162,61 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
     if (!validation.isValid) {
       toast.error(validation.message)
       return
+    }
+
+    const duplicated = extraSlots.some((slot) => {
+      const exactMatch = slot.start.getTime() === startDateTime.getTime() && slot.end.getTime() === endDateTime.getTime()
+      const containedByExisting = slot.start.getTime() <= startDateTime.getTime() && slot.end.getTime() >= endDateTime.getTime()
+      return exactMatch || containedByExisting
+    })
+
+    if (duplicated) {
+      toast.error("此時段已在清單中")
+      return
+    }
+
+    setExtraSlots((prev) => [...prev, { start: startDateTime, end: endDateTime }])
+    onClearSelectedSlot?.()
+    toast.success("已加入時段清單")
+  }
+
+  async function onSubmit(values: BookingFormValues) {
+    const baseStart = buildDateTime(values.startDate, values.startTime)
+    const baseEnd = buildDateTime(values.endDate, values.endTime)
+    const manualSlots = mergeUniqueSlots([...extraSlots, { start: baseStart, end: baseEnd }])
+    const repeatedSlots = expandRepeatedSlotsForList(manualSlots, repeatPattern, repeatUntil)
+
+    if (repeatedSlots === null) {
+      toast.error("請選擇重複借用的截止日期")
+      return
+    }
+
+    if (repeatPattern !== "none" && repeatUntil && repeatUntil < values.startDate) {
+      toast.error("重複借用截止日期不能早於開始日期")
+      return
+    }
+
+    const allSlots = mergeUniqueSlots(repeatedSlots)
+
+    if (hasOverlappingSlots(allSlots)) {
+      toast.error("送出的多個時段彼此重疊，請調整後再送出")
+      return
+    }
+
+    for (let i = 0; i < allSlots.length; i += 1) {
+      const validation = validateBookingRules(
+        allSlots[i].start,
+        allSlots[i].end,
+        values.roomId,
+        rooms,
+        isAdmin
+      )
+
+      if (!validation.isValid) {
+        const prefix = allSlots.length > 1 ? `第 ${i + 1} 筆時段：` : ""
+        toast.error(`${prefix}${validation.message}`)
+        return
+      }
     }
 
     try {
@@ -158,9 +232,12 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
         body: JSON.stringify({
           roomId: values.roomId,
           borrowingUnit: values.borrowingUnit,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
+          slots: allSlots.map((slot) => ({
+            startTime: slot.start.toISOString(),
+            endTime: slot.end.toISOString(),
+          })),
           purpose: values.purpose.trim() + (useSocket ? "\n(需要使用插座)" : ""),
+          note: values.note?.trim() || null,
         }),
       })
 
@@ -169,13 +246,17 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
         throw new Error(errorData.error || '預約失敗')
       }
 
-      toast.success("預約申請已送出")
+      toast.success(allSlots.length > 1 ? `已送出 ${allSlots.length} 筆預約申請` : "預約申請已送出")
       const defaultBorrowingUnit = localStorage.getItem(getDefaultBorrowingUnitKey(currentUserId)) || ""
       form.reset({
         roomId: selectedRoomId || "",
         borrowingUnit: defaultBorrowingUnit,
         purpose: "",
+        note: "",
       })
+      setExtraSlots([])
+      setRepeatPattern("none")
+      setRepeatUntil(undefined)
       router.push('/dashboard/my-bookings')
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '預約失敗'
@@ -396,6 +477,108 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
           />
         </div>
 
+        <div className="space-y-4 rounded-lg border border-dashed p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold">多時段清單</p>
+              <p className="text-xs text-muted-foreground">可先把目前時段加入清單，再調整下一個時段。</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={handleAddCurrentSlot}>
+              <Plus className="mr-1 h-4 w-4" />
+              加入目前時段
+            </Button>
+          </div>
+
+          {extraSlots.length === 0 ? (
+            <p className="text-xs text-muted-foreground">尚未加入額外時段，目前送出會以表單中的時段為主。</p>
+          ) : (
+            <div className="space-y-2">
+              {extraSlots.map((slot, index) => (
+                <div key={`${slot.start.toISOString()}-${slot.end.toISOString()}`} className="flex items-center justify-between rounded-md border px-3 py-2">
+                  <span className="text-sm">
+                    {index + 1}. {format(slot.start, "yyyy/MM/dd HH:mm", { locale: zhTW })} - {format(slot.end, "HH:mm", { locale: zhTW })}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setExtraSlots((prev) => prev.filter((_, idx) => idx !== index))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4 rounded-lg border p-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">固定重複借用</p>
+            <p className="text-xs text-muted-foreground">以目前表單時段為基準重複建立（額外清單中的時段不套用重複）。</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <FormLabel>重複頻率</FormLabel>
+              <Select value={repeatPattern} onValueChange={(val: "none" | "daily" | "weekly") => setRepeatPattern(val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇重複頻率" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">不重複</SelectItem>
+                  <SelectItem value="daily">每日重複</SelectItem>
+                  <SelectItem value="weekly">每週重複</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {repeatPattern !== "none" && (
+              <div className="space-y-2">
+                <FormLabel>截止日期</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !repeatUntil && "text-muted-foreground"
+                      )}
+                    >
+                      {repeatUntil ? format(repeatUntil, "PPP", { locale: zhTW }) : <span>選擇截止日期</span>}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={repeatUntil}
+                      onSelect={setRepeatUntil}
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        if (!isAdmin && date < today) return true
+                        if (!isAdmin) {
+                          const minDate = new Date(today)
+                          minDate.setDate(today.getDate() + MIN_ADVANCE_DAYS)
+                          if (date < minDate) return true
+                          const maxDate = new Date(today)
+                          maxDate.setDate(today.getDate() + MAX_ADVANCE_DAYS)
+                          if (date > maxDate) return true
+                          if (!isDateWithin4Months(date, maxBookableMonths)) return true
+                        }
+                        if (watchedStartDate && date < watchedStartDate) return true
+                        return false
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="borrowingUnit"
@@ -438,6 +621,28 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
                   {...field}
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="note"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>備註（選填）</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="補充說明"
+                  className="resize-none"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormDescription>
+                可填寫額外需求或提醒事項。
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

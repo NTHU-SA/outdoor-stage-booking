@@ -20,6 +20,7 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
 
   const [selectedRoomId, setSelectedRoomId] = useState<string>(defaultRoomId)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
+  const [recordedSlots, setRecordedSlots] = useState<Array<{ start: Date; end: Date }>>([])
   const [isMounted, setIsMounted] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -78,6 +79,8 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
             selectedRoomId={selectedRoomId}
             onRoomChange={setSelectedRoomId}
             prefillSlot={selectedSlot}
+            onRecordedSlotsChange={setRecordedSlots}
+            onClearSelectedSlot={() => setSelectedSlot(null)}
           />
         </CardContent>
       </Card>
@@ -88,6 +91,7 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
           roomId={selectedRoomId}
           onSelectSlot={setSelectedSlot}
           selectedSlot={selectedSlot}
+          recordedSlots={recordedSlots}
           isAdmin={isAdmin}
         />
       </div>

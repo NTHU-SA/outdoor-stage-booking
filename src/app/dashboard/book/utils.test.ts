@@ -7,6 +7,11 @@ import {
   MAX_HOURS_PER_DAY,
   MIN_ADVANCE_DAYS,
   MAX_ADVANCE_DAYS,
+  expandRepeatedSlots,
+  expandRepeatedSlotsForList,
+  hasOverlappingSlots,
+  mergeUniqueSlots,
+  MAX_BATCH_SLOTS,
 } from '@/app/dashboard/book/utils'
 import type { Room } from '@/utils/supabase/queries'
 
@@ -297,5 +302,75 @@ describe('generateTimeSlots', () => {
   it('should default to non-admin when called without argument', () => {
     const slots = generateTimeSlots()
     expect(slots[0]).toBe('08:00')
+  })
+})
+
+describe('multi-slot helpers', () => {
+  it('expandRepeatedSlots should return null when repeat requires end date but not provided', () => {
+    const baseStart = new Date('2026-03-30T10:00:00.000Z')
+    const baseEnd = new Date('2026-03-30T11:00:00.000Z')
+    const result = expandRepeatedSlots(baseStart, baseEnd, 'weekly')
+    expect(result).toBeNull()
+  })
+
+  it('expandRepeatedSlots should stop at MAX_BATCH_SLOTS boundary', () => {
+    const baseStart = new Date('2026-03-30T10:00:00.000Z')
+    const baseEnd = new Date('2026-03-30T11:00:00.000Z')
+    const repeatUntil = new Date('2026-07-30T00:00:00.000Z')
+    const result = expandRepeatedSlots(baseStart, baseEnd, 'daily', repeatUntil)
+
+    expect(result).not.toBeNull()
+    expect(result?.length).toBe(MAX_BATCH_SLOTS)
+    expect(result?.[0].start.toISOString()).toBe('2026-03-30T10:00:00.000Z')
+  })
+
+  it('expandRepeatedSlots should include all weekly slots until repeatUntil day', () => {
+    const baseStart = new Date('2026-03-30T10:00:00.000Z')
+    const baseEnd = new Date('2026-03-30T11:00:00.000Z')
+    const repeatUntil = new Date('2026-04-13T00:00:00.000Z')
+    const result = expandRepeatedSlots(baseStart, baseEnd, 'weekly', repeatUntil)
+
+    expect(result).not.toBeNull()
+    expect(result?.length).toBe(3)
+    expect(result?.[2].start.toISOString()).toBe('2026-04-13T10:00:00.000Z')
+  })
+
+  it('hasOverlappingSlots should detect overlap correctly', () => {
+    const slots = [
+      { start: new Date('2026-03-30T10:00:00.000Z'), end: new Date('2026-03-30T11:00:00.000Z') },
+      { start: new Date('2026-03-30T10:30:00.000Z'), end: new Date('2026-03-30T11:30:00.000Z') },
+    ]
+
+    expect(hasOverlappingSlots(slots)).toBe(true)
+  })
+
+  it('mergeUniqueSlots should deduplicate and sort slots', () => {
+    const slots = [
+      { start: new Date('2026-03-31T10:00:00.000Z'), end: new Date('2026-03-31T11:00:00.000Z') },
+      { start: new Date('2026-03-30T10:00:00.000Z'), end: new Date('2026-03-30T11:00:00.000Z') },
+      { start: new Date('2026-03-31T10:00:00.000Z'), end: new Date('2026-03-31T11:00:00.000Z') },
+    ]
+
+    const result = mergeUniqueSlots(slots)
+    expect(result.length).toBe(2)
+    expect(result[0].start.toISOString()).toBe('2026-03-30T10:00:00.000Z')
+    expect(result[1].start.toISOString()).toBe('2026-03-31T10:00:00.000Z')
+  })
+
+  it('expandRepeatedSlotsForList should repeat all selected slots weekly', () => {
+    const baseSlots = [
+      { start: new Date('2026-03-28T12:30:00.000Z'), end: new Date('2026-03-28T13:30:00.000Z') },
+      { start: new Date('2026-03-28T19:00:00.000Z'), end: new Date('2026-03-28T20:30:00.000Z') },
+      { start: new Date('2026-03-29T17:30:00.000Z'), end: new Date('2026-03-29T19:00:00.000Z') },
+    ]
+
+    const repeatUntil = new Date('2026-04-06T00:00:00.000Z')
+    const result = expandRepeatedSlotsForList(baseSlots, 'weekly', repeatUntil)
+
+    expect(result).not.toBeNull()
+    expect(result?.length).toBe(6)
+    expect(result?.some((slot) => slot.start.toISOString() === '2026-04-04T12:30:00.000Z')).toBe(true)
+    expect(result?.some((slot) => slot.start.toISOString() === '2026-04-04T19:00:00.000Z')).toBe(true)
+    expect(result?.some((slot) => slot.start.toISOString() === '2026-04-05T17:30:00.000Z')).toBe(true)
   })
 })

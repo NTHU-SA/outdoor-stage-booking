@@ -249,8 +249,18 @@
   color: #fafafa;
 }
 
+/* Ensure current-day column header keeps sufficient contrast in dark mode */
+.dark .fc-wrapper .fc-col-header-cell.fc-day-today {
+  background-color: #334155 !important;
+}
+
 .dark .fc-wrapper .fc-col-header-cell-cushion {
   color: #fafafa;
+}
+
+.dark .fc-wrapper .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: #f8fafc !important;
+  font-weight: 600;
 }
 
 .dark .fc-wrapper .fc-timegrid-slot-label,
@@ -276,6 +286,14 @@
 
 .dark .fc-wrapper .fc-view-harness {
   background-color: #18181b;
+}
+
+/* Top-left corner and left axis cells in time grid */
+.dark .fc-wrapper .fc-timegrid-axis,
+.dark .fc-wrapper .fc-timegrid-axis-frame,
+.dark .fc-wrapper .fc-timegrid-axis-cushion {
+  background-color: #27272a !important;
+  color: #d4d4d8 !important;
 }
 
 .dark .fc-wrapper .fc-scroller::-webkit-scrollbar-track {

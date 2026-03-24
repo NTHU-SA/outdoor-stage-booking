@@ -64,6 +64,7 @@ export type Booking = {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
   borrowing_unit?: string | null
   purpose: string
+  note?: string | null
   created_at: string
   user_name?: string // Optional, for admin view
 }

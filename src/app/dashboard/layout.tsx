@@ -12,6 +12,11 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <AppSidebar />
       <main className="flex min-h-svh flex-1 flex-col w-full">
+        {/* Desktop quick restore trigger to avoid losing sidebar access when collapsed */}
+        <div className="hidden md:flex items-center px-4 md:px-8 pt-3">
+          <SidebarTrigger className="size-8" />
+        </div>
+
         {/* Mobile-only sticky header with hamburger menu */}
         <div className="sticky top-0 z-40 flex items-center gap-3 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 px-4 py-3 md:hidden">
           <SidebarTrigger className="size-8" />

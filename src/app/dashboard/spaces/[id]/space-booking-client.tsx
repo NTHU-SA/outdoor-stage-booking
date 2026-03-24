@@ -18,6 +18,7 @@ type SpaceBookingClientProps = {
 
 export function SpaceBookingClient({ room, isAdmin }: SpaceBookingClientProps) {
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
+    const [recordedSlots, setRecordedSlots] = useState<Array<{ start: Date; end: Date }>>([])
 
     return (
         <div className="space-y-6">
@@ -47,6 +48,7 @@ export function SpaceBookingClient({ room, isAdmin }: SpaceBookingClientProps) {
                             isAdmin={isAdmin}
                             selectedSlot={selectedSlot}
                             onChange={setSelectedSlot}
+                            onRecordedSlotsChange={setRecordedSlots}
                         />
                     </div>
 
@@ -68,6 +70,7 @@ export function SpaceBookingClient({ room, isAdmin }: SpaceBookingClientProps) {
                         roomId={room.id}
                         onSelectSlot={setSelectedSlot}
                         selectedSlot={selectedSlot}
+                        recordedSlots={recordedSlots}
                         isAdmin={isAdmin}
                     />
                 </div>

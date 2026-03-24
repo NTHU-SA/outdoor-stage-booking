@@ -22,6 +22,9 @@ export const bookingFormSchema = z.object({
   purpose: z.string().min(5, {
     message: "事由至少需要 5 個字",
   }),
+  note: z.string().max(1000, {
+    message: "備註最多 1000 字",
+  }).optional(),
 }).refine((data) => {
   const startDay = new Date(data.startDate)
   startDay.setHours(0, 0, 0, 0)

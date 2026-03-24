@@ -53,6 +53,7 @@ export async function getAdminBookings(
       status,
       borrowing_unit,
       purpose,
+      note,
       created_at,
       room:rooms (
         name,
@@ -164,6 +165,7 @@ export async function getAdminBookings(
     ...booking,
     borrowing_unit: sanitizeRscString(booking.borrowing_unit) ?? '',
     purpose: sanitizeRscString(booking.purpose) ?? '',
+    note: sanitizeRscString(booking.note) ?? null,
     room: {
       ...booking.room,
       name: sanitizeRscString(booking.room.name) ?? '',

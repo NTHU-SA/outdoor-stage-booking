@@ -12,6 +12,18 @@ const createBookingSchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
   purpose: z.string().min(1),
+  note: z.string().max(1000).optional().nullable(),
+})
+
+const createBatchBookingSchema = z.object({
+  roomId: z.string().uuid(),
+  borrowingUnit: z.string().min(1),
+  purpose: z.string().min(1),
+  note: z.string().max(1000).optional().nullable(),
+  slots: z.array(z.object({
+    startTime: z.string().datetime(),
+    endTime: z.string().datetime(),
+  })).min(1).max(50),
 })
 
 type UnavailablePeriod = {
@@ -52,6 +64,139 @@ function overlapWithDayMinutes(rangeStart: Date, rangeEnd: Date, day: Date, star
   return Math.max(requestStart, startMins) < Math.min(requestEnd, endMins)
 }
 
+type ValidationContext = {
+  isAdmin: boolean
+  roomId: string
+  room: { unavailable_periods: UnavailablePeriod[] | null }
+  maxBookableMonths: number
+}
+
+function validateSingleSlot(
+  startTime: Date,
+  endTime: Date,
+  context: ValidationContext,
+): string | null {
+  const { isAdmin, room, maxBookableMonths } = context
+
+  if (startTime >= endTime) {
+    return '結束時間必須晚於開始時間'
+  }
+
+  if (!isAdmin) {
+    const startHour = startTime.getHours()
+    const startMin = startTime.getMinutes()
+    const endHour = endTime.getHours()
+    const endMin = endTime.getMinutes()
+
+    const startMins = startHour * 60 + startMin
+    const endMins = endHour * 60 + endMin
+
+    const allowedStart = 8 * 60
+    const allowedEnd = 22 * 60
+
+    if (startMins < allowedStart || startMins >= allowedEnd) {
+      return '借用時段為每日 8:00 至 22:00'
+    }
+
+    if (endMins <= allowedStart || endMins > allowedEnd) {
+      return '借用時段為每日 8:00 至 22:00'
+    }
+  }
+
+  if (!isAdmin) {
+    const durationMs = endTime.getTime() - startTime.getTime()
+    const durationHours = durationMs / (1000 * 60 * 60)
+    if (durationHours > 4) {
+      return '一日最多借用 4 小時'
+    }
+  }
+
+  if (!isAdmin) {
+    const today = new Date()
+    const minDate = new Date()
+    minDate.setDate(today.getDate() + 1)
+    minDate.setHours(0, 0, 0, 0)
+
+    if (startTime < minDate) {
+      return '須於借用日前 1 日提出申請'
+    }
+
+    const maxDate = new Date()
+    maxDate.setDate(today.getDate() + 30)
+    maxDate.setHours(23, 59, 59, 999)
+
+    if (startTime > maxDate) {
+      return '最多僅能預約未來 30 天內的日期'
+    }
+
+    if (endTime > maxDate) {
+      return '借用結束日期超出可預約範圍（30 天）'
+    }
+
+    if (!isDateWithin4Months(startTime, maxBookableMonths)) {
+      return `一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期`
+    }
+
+    if (!isDateWithin4Months(endTime, maxBookableMonths)) {
+      return `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）`
+    }
+  }
+
+  const startDay = new Date(startTime)
+  startDay.setHours(0, 0, 0, 0)
+  const endDay = new Date(endTime)
+  const effectiveEnd = new Date(endTime)
+  if (effectiveEnd.getHours() === 0 && effectiveEnd.getMinutes() === 0 && effectiveEnd.getSeconds() === 0 && effectiveEnd > startTime) {
+    effectiveEnd.setDate(effectiveEnd.getDate() - 1)
+  }
+  endDay.setTime(effectiveEnd.getTime())
+  endDay.setHours(0, 0, 0, 0)
+
+  if (startDay.getTime() !== endDay.getTime()) {
+    return '無法跨天借用'
+  }
+
+  if (!isAdmin && room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
+    const periods = room.unavailable_periods as UnavailablePeriod[]
+
+    const unavailableError = iterateDays(startTime, endTime, (day) => {
+      const bookingDay = day.getDay()
+
+      for (const period of periods) {
+        if (period.day === bookingDay) {
+          const [pStartH, pStartM] = period.start.split(':').map(Number)
+          const [pEndH, pEndM] = period.end.split(':').map(Number)
+
+          const periodStartMins = pStartH * 60 + pStartM
+          const periodEndMins = pEndH * 60 + pEndM
+
+          if (overlapWithDayMinutes(startTime, endTime, day, periodStartMins, periodEndMins)) {
+            return `此時段 (${period.start}-${period.end}) 不開放借用`
+          }
+        }
+      }
+
+      return null
+    })
+
+    if (unavailableError) {
+      return unavailableError
+    }
+  }
+
+  return null
+}
+
+function hasAnyOverlap(slots: Array<{ startTime: Date; endTime: Date }>): boolean {
+  const sorted = [...slots].sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+  for (let i = 1; i < sorted.length; i += 1) {
+    if (sorted[i - 1].endTime > sorted[i].startTime) {
+      return true
+    }
+  }
+  return false
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -62,14 +207,43 @@ export async function POST(request: Request) {
     }
 
     const json = await request.json()
-    const body = createBookingSchema.parse(json)
+    const singleParsed = createBookingSchema.safeParse(json)
+    const batchParsed = createBatchBookingSchema.safeParse(json)
 
-    const startTime = new Date(body.startTime)
-    const endTime = new Date(body.endTime)
-
-    if (startTime >= endTime) {
-      return NextResponse.json({ error: '結束時間必須晚於開始時間' }, { status: 400 })
+    if (!singleParsed.success && !batchParsed.success) {
+      return NextResponse.json({ error: '無效的資料格式' }, { status: 400 })
     }
+
+    const isBatchRequest = batchParsed.success
+    let roomId: string
+    let borrowingUnit: string
+    let purpose: string
+    let note: string | null
+    let rawSlots: Array<{ startTime: string; endTime: string }>
+
+    if (batchParsed.success) {
+      roomId = batchParsed.data.roomId
+      borrowingUnit = batchParsed.data.borrowingUnit
+      purpose = batchParsed.data.purpose
+      note = batchParsed.data.note?.trim() || null
+      rawSlots = batchParsed.data.slots
+    } else {
+      if (!singleParsed.success) {
+        return NextResponse.json({ error: '無效的資料格式' }, { status: 400 })
+      }
+      roomId = singleParsed.data.roomId
+      borrowingUnit = singleParsed.data.borrowingUnit
+      purpose = singleParsed.data.purpose
+      note = singleParsed.data.note?.trim() || null
+      rawSlots = [{ startTime: singleParsed.data.startTime, endTime: singleParsed.data.endTime }]
+    }
+
+    const parsedSlots = rawSlots
+      .map((slot) => ({
+        startTime: new Date(slot.startTime),
+        endTime: new Date(slot.endTime),
+      }))
+      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
 
 
     // Fetch user profile for role check
@@ -85,7 +259,7 @@ export async function POST(request: Request) {
     const { data: room, error: roomError } = await supabase
       .from('rooms')
       .select('unavailable_periods, is_active')
-      .eq('id', body.roomId)
+      .eq('id', roomId)
       .maybeSingle()
 
     if (roomError) {
@@ -103,109 +277,38 @@ export async function POST(request: Request) {
 
     const maxBookableMonths = getMaxBookableMonths()
 
-    // 1. Check booking time is within allowed hours (08:00 - 22:00)
-    if (!isAdmin) {
-      const startHour = startTime.getHours()
-      const startMin = startTime.getMinutes()
-      const endHour = endTime.getHours()
-      const endMin = endTime.getMinutes()
-      
-      const startMins = startHour * 60 + startMin
-      const endMins = endHour * 60 + endMin
-      
-      const allowedStart = 8 * 60 // 08:00
-      const allowedEnd = 22 * 60 // 22:00
-      
-      if (startMins < allowedStart || startMins >= allowedEnd) {
-        return NextResponse.json({ error: '借用時段為每日 8:00 至 22:00' }, { status: 400 })
-      }
-      
-      if (endMins <= allowedStart || endMins > allowedEnd) {
-        return NextResponse.json({ error: '借用時段為每日 8:00 至 22:00' }, { status: 400 })
-      }
-    }
-
-    // 2. Check total duration does not exceed 4 hours per day
-    if (!isAdmin) {
-      const durationMs = endTime.getTime() - startTime.getTime()
-      const durationHours = durationMs / (1000 * 60 * 60)
-      if (durationHours > 4) {
-        return NextResponse.json({ error: '一日最多借用 4 小時' }, { status: 400 })
-      }
-    }
-
-    // 3. Check advance booking rule (1 day to 30 days before) for non-admins
-    if (!isAdmin) {
-      const today = new Date()
-      const minDate = new Date()
-      minDate.setDate(today.getDate() + 1)
-      minDate.setHours(0, 0, 0, 0) 
-      
-      if (startTime < minDate) {
-        return NextResponse.json({ error: '須於借用日前 1 日提出申請' }, { status: 400 })
-      }
-
-      const maxDate = new Date()
-      maxDate.setDate(today.getDate() + 30)
-      maxDate.setHours(23, 59, 59, 999)
-
-      if (startTime > maxDate) {
-        return NextResponse.json({ error: '最多僅能預約未來 30 天內的日期' }, { status: 400 })
-      }
-
-      if (endTime > maxDate) {
-        return NextResponse.json({ error: '借用結束日期超出可預約範圍（30 天）' }, { status: 400 })
-      }
-      
-      // 4. Check max-month limit for non-admins
-      if (!isDateWithin4Months(startTime, maxBookableMonths)) {
-        return NextResponse.json({ error: `一般使用者僅能借用未來 ${maxBookableMonths} 個月內的日期` }, { status: 400 })
-      }
-
-      if (!isDateWithin4Months(endTime, maxBookableMonths)) {
-        return NextResponse.json({ error: `借用結束日期超出可預約範圍（${maxBookableMonths} 個月）` }, { status: 400 })
-      }
-    }
-
-    // 4. Check unavailable periods
-    if (!isAdmin && room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
-      const periods = room.unavailable_periods as UnavailablePeriod[]
-
-      const unavailableError = iterateDays(startTime, endTime, (day) => {
-        const bookingDay = day.getDay()
-
-        for (const period of periods) {
-          if (period.day === bookingDay) {
-            const [pStartH, pStartM] = period.start.split(':').map(Number)
-            const [pEndH, pEndM] = period.end.split(':').map(Number)
-
-            const periodStartMins = pStartH * 60 + pStartM
-            const periodEndMins = pEndH * 60 + pEndM
-
-            if (overlapWithDayMinutes(startTime, endTime, day, periodStartMins, periodEndMins)) {
-              return `此時段 (${period.start}-${period.end}) 不開放借用`
-            }
-          }
-        }
-
-        return null
+    for (let i = 0; i < parsedSlots.length; i += 1) {
+      const slot = parsedSlots[i]
+      const errorMessage = validateSingleSlot(slot.startTime, slot.endTime, {
+        isAdmin,
+        roomId,
+        room: {
+          unavailable_periods: room.unavailable_periods as UnavailablePeriod[] | null,
+        },
+        maxBookableMonths,
       })
-
-      if (unavailableError) {
-        return NextResponse.json({ error: unavailableError }, { status: 400 })
+      if (errorMessage) {
+        const prefix = parsedSlots.length > 1 ? `第 ${i + 1} 筆時段：` : ''
+        return NextResponse.json({ error: `${prefix}${errorMessage}` }, { status: 400 })
       }
     }
 
-    // 5. Check for overlapping bookings
+    if (hasAnyOverlap(parsedSlots)) {
+      return NextResponse.json({ error: '送出的多個時段彼此重疊，請調整後再送出' }, { status: 400 })
+    }
+
+    const minStartTime = parsedSlots[0]?.startTime
+    const maxEndTime = parsedSlots[parsedSlots.length - 1]?.endTime
+
     const { data: overlaps, error: overlapError } = await supabase
       .from('bookings')
-      .select('id')
-      .eq('room_id', body.roomId)
+      .select('id, start_time, end_time')
+      .eq('room_id', roomId)
       .neq('status', 'cancelled')
       .neq('status', 'rejected')
-      .neq('status', 'cancelled_by_user') // Added check for new status
-      .filter('start_time', 'lt', body.endTime)
-      .filter('end_time', 'gt', body.startTime)
+      .neq('status', 'cancelled_by_user')
+      .filter('start_time', 'lt', maxEndTime.toISOString())
+      .filter('end_time', 'gt', minStartTime.toISOString())
     
     if (overlapError) {
         console.error(overlapError)
@@ -213,33 +316,56 @@ export async function POST(request: Request) {
     }
 
     if (overlaps && overlaps.length > 0) {
-      return NextResponse.json({ error: '該時段已被預約' }, { status: 409 })
+      const hasConflict = parsedSlots.some((slot) => {
+        return overlaps.some((row) => {
+          const existingStart = new Date(row.start_time)
+          const existingEnd = new Date(row.end_time)
+          return existingStart < slot.endTime && existingEnd > slot.startTime
+        })
+      })
+
+      if (hasConflict) {
+        return NextResponse.json({ error: '送出的時段中有部分已被預約' }, { status: 409 })
+      }
     }
 
     // Create booking
     // All non-admin bookings go to pending, admin bookings are auto-approved
     const bookingStatus = isAdmin ? 'approved' : 'pending'
 
-    const { data: booking, error: createError } = await supabase
+    const insertRows = parsedSlots.map((slot) => ({
+      user_id: user.id,
+      room_id: roomId,
+      borrowing_unit: borrowingUnit,
+      start_time: slot.startTime.toISOString(),
+      end_time: slot.endTime.toISOString(),
+      purpose,
+      note,
+      status: bookingStatus,
+    }))
+
+    const { data: bookings, error: createError } = await supabase
       .from('bookings')
-      .insert({
-        user_id: user.id,
-        room_id: body.roomId,
-        borrowing_unit: body.borrowingUnit,
-        start_time: body.startTime,
-        end_time: body.endTime,
-        purpose: body.purpose,
-        status: bookingStatus
-      })
+      .insert(insertRows)
       .select()
-      .single()
 
     if (createError) {
         console.error(createError)
         return NextResponse.json({ error: '建立預約失敗' }, { status: 500 })
     }
 
-    return NextResponse.json(booking)
+    if (!bookings || bookings.length === 0) {
+      return NextResponse.json({ error: '建立預約失敗' }, { status: 500 })
+    }
+
+    if (bookings.length === 1) {
+      return NextResponse.json(bookings[0])
+    }
+
+    return NextResponse.json({
+      createdCount: bookings.length,
+      bookings,
+    })
   } catch (error) {
       if (error instanceof z.ZodError) {
           return NextResponse.json({ error: '無效的資料格式' }, { status: 400 })
