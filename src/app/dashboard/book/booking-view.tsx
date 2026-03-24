@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Room } from "@/utils/supabase/queries"
 import { BookingForm } from "./booking-form"
 import { RoomTimetable } from "./room-timetable"
+import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 type BookingViewProps = {
@@ -13,13 +14,26 @@ type BookingViewProps = {
 
 export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
   // Ensure initialRoomId exists in the rooms list, otherwise fallback to first room
-  const defaultRoomId = (initialRoomId && rooms.some(r => r.id === initialRoomId)) 
-    ? initialRoomId 
+  const defaultRoomId = (initialRoomId && rooms.some(r => r.id === initialRoomId))
+    ? initialRoomId
     : (rooms[0]?.id || "")
 
   const [selectedRoomId, setSelectedRoomId] = useState<string>(defaultRoomId)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const checkRole = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role === 'admin') setIsAdmin(true)
+      }
+    }
+    checkRole()
+  }, [])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -38,9 +52,9 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
             <CardDescription>載入中...</CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                載入表單中...
-             </div>
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+              載入表單中...
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -59,22 +73,23 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BookingForm 
-            rooms={rooms} 
+          <BookingForm
+            rooms={rooms}
             selectedRoomId={selectedRoomId}
             onRoomChange={setSelectedRoomId}
             prefillSlot={selectedSlot}
           />
         </CardContent>
       </Card>
-      
+
       <div className="space-y-4">
         <h3 className="text-lg font-bold">{rooms.find(r => r.id === selectedRoomId)?.name} - 目前預約情形</h3>
-                <RoomTimetable 
-                    roomId={selectedRoomId} 
-                    onSelectSlot={setSelectedSlot}
-                    selectedSlot={selectedSlot}
-                />
+        <RoomTimetable
+          roomId={selectedRoomId}
+          onSelectSlot={setSelectedSlot}
+          selectedSlot={selectedSlot}
+          isAdmin={isAdmin}
+        />
       </div>
     </div>
   )

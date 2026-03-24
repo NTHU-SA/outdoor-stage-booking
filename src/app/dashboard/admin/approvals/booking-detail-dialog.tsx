@@ -13,7 +13,7 @@ import { Booking } from "./booking-list"
 import { ActionButtons } from "./action-buttons"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle2, Circle, XCircle, SkipForward, Plug } from "lucide-react"
+import { Plug } from "lucide-react"
 
 interface BookingDetailDialogProps {
   booking: Booking | null
@@ -46,18 +46,7 @@ export function BookingDetailDialog({
     }
   }
 
-  const getStepIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />
-      case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-600" />
-      case 'skipped':
-        return <SkipForward className="h-4 w-4 text-muted-foreground" />
-      default:
-        return <Circle className="h-4 w-4 text-yellow-500" />
-    }
-  }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -134,55 +123,7 @@ export function BookingDetailDialog({
             </div>
           </div>
 
-          {/* Approval Steps */}
-          {booking.has_multi_level_approval && booking.approval_steps && booking.approval_steps.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm text-muted-foreground">審核進度</h4>
-                <div className="space-y-2">
-                  {booking.approval_steps.map((step) => (
-                    <div
-                      key={step.id}
-                      className="flex items-center gap-3 p-2 rounded-md text-sm bg-muted/30"
-                    >
-                      {getStepIcon(step.status)}
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {step.label || `第 ${step.step_order} 階段`}
-                          {step.approver?.full_name && (
-                            <span className="text-muted-foreground font-normal ml-1">
-                              ({step.approver.full_name})
-                            </span>
-                          )}
-                        </div>
-                        {step.decided_at && (
-                          <div className="text-xs text-muted-foreground">
-                            {format(toTaipeiTime(step.decided_at), "MM/dd HH:mm")}
-                            {step.comment && ` — ${step.comment}`}
-                          </div>
-                        )}
-                      </div>
-                      <Badge
-                        variant={
-                          step.status === 'approved' ? 'default' :
-                            step.status === 'rejected' ? 'destructive' :
-                              step.status === 'skipped' ? 'outline' : 'secondary'
-                        }
-                        className={`text-xs ${step.status === 'approved' ? 'bg-green-600' :
-                          step.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''
-                          }`}
-                      >
-                        {step.status === 'approved' ? '已核准' :
-                          step.status === 'rejected' ? '已拒絕' :
-                            step.status === 'skipped' ? '已跳過' : '待審核'}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
+
 
           <Separator />
 
@@ -190,7 +131,6 @@ export function BookingDetailDialog({
             <ActionButtons
               bookingId={booking.id}
               status={booking.status}
-              hasMultiLevelApproval={booking.has_multi_level_approval}
               onSuccess={(action) => {
                 onActionSuccess(booking.id, action)
                 onOpenChange(false)

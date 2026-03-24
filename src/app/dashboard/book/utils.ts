@@ -127,7 +127,7 @@ export function validateBookingRules(
 
   // Rule: Unavailable periods check
   const selectedRoom = rooms.find(r => r.id === roomId)
-  if (selectedRoom?.unavailable_periods && Array.isArray(selectedRoom.unavailable_periods)) {
+  if (!isAdmin && selectedRoom?.unavailable_periods && Array.isArray(selectedRoom.unavailable_periods)) {
     const unavailableResult = iterateDays(startTime, endTime, (day) => {
       const bookingDay = day.getDay()
 
@@ -153,10 +153,10 @@ export function validateBookingRules(
   return { isValid: true }
 }
 
-export function generateTimeSlots() {
-  // Generate 30-minute interval time slots from 08:00 to 22:00
-  const startSlot = BOOKING_START_HOUR * 2 // 16 (08:00)
-  const endSlot = BOOKING_END_HOUR * 2 // 44 (22:00)
+export function generateTimeSlots(isAdmin: boolean = false) {
+  // Generate 30-minute interval time slots from 08:00 to 22:00 (or 00:00 to 24:00 for admins)
+  const startSlot = isAdmin ? 0 : BOOKING_START_HOUR * 2
+  const endSlot = isAdmin ? 48 : BOOKING_END_HOUR * 2
   return Array.from({ length: endSlot - startSlot + 1 }, (_, i) => {
     const totalMinutes = (startSlot + i) * 30
     const hour = Math.floor(totalMinutes / 60)

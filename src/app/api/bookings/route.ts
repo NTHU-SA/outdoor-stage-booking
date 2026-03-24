@@ -1,5 +1,4 @@
 import { createClient } from '@/utils/supabase/server'
-import { createServiceClient } from '@/utils/supabase/service'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { 
@@ -169,8 +168,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Check unavailable periods
-
-    if (room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
+    if (!isAdmin && room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
       const periods = room.unavailable_periods as UnavailablePeriod[]
 
       const unavailableError = iterateDays(startTime, endTime, (day) => {
@@ -239,34 +237,6 @@ export async function POST(request: Request) {
     if (createError) {
         console.error(createError)
         return NextResponse.json({ error: '建立預約失敗' }, { status: 500 })
-    }
-
-    // Create approval steps if the room has multi-level approvers (non-admin bookings only)
-    if (!isAdmin && booking) {
-      try {
-        const supabaseAdmin = createServiceClient()
-        const { data: approvers } = await supabaseAdmin
-          .from('room_approvers')
-          .select('user_id, step_order, label')
-          .eq('room_id', body.roomId)
-          .order('step_order')
-
-        if (approvers && approvers.length > 0) {
-          const steps = approvers.map(a => ({
-            booking_id: booking.id,
-            step_order: a.step_order,
-            approver_id: a.user_id,
-            label: a.label,
-            status: 'pending',
-          }))
-          await supabaseAdmin
-            .from('booking_approval_steps')
-            .insert(steps)
-        }
-      } catch (err) {
-        console.error('Error creating approval steps:', err)
-        // Non-fatal: booking is still created
-      }
     }
 
     return NextResponse.json(booking)

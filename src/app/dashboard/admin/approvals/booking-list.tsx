@@ -18,18 +18,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Plug } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BookingDetailDialog } from "./booking-detail-dialog"
 
-export type ApprovalStepInfo = {
-  id: string
-  step_order: number
-  approver_id: string
-  label: string | null
-  status: 'pending' | 'approved' | 'rejected' | 'skipped'
-  decided_at: string | null
-  comment: string | null
-  approver?: {
-    full_name: string | null
-  }
-}
+
 
 export type Booking = {
   id: string
@@ -47,9 +36,6 @@ export type Booking = {
   room: {
     name: string
   }
-  approval_steps?: ApprovalStepInfo[]
-  has_multi_level_approval?: boolean
-  current_approval_label?: string | null
 }
 
 interface BookingListProps {
@@ -98,24 +84,6 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
       case 'rejected':
         return <Badge variant="destructive">已拒絕</Badge>
       case 'pending':
-        if (booking.has_multi_level_approval && booking.approval_steps) {
-          const approved = booking.approval_steps.filter(s => s.status === 'approved' || s.status === 'skipped').length
-          const total = booking.approval_steps.length
-          const currentStep = booking.approval_steps.find(s => s.status === 'pending')
-          return (
-            <div className="flex flex-col gap-0.5">
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
-                審核中 {approved}/{total}
-              </Badge>
-              {currentStep && (
-                <span className="text-[10px] text-muted-foreground truncate max-w-[100px]" title={currentStep.label || `第 ${currentStep.step_order} 階`}>
-                  → {currentStep.label || `第 ${currentStep.step_order} 階`}
-                  {currentStep.approver?.full_name && ` (${currentStep.approver.full_name})`}
-                </span>
-              )}
-            </div>
-          )
-        }
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">待審核</Badge>
       case 'cancelled':
       case 'cancelled_by_user':
@@ -274,7 +242,6 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                     <ActionButtons
                       bookingId={booking.id}
                       status={booking.status}
-                      hasMultiLevelApproval={booking.has_multi_level_approval}
                       onSuccess={(action) => handleActionSuccess(booking.id, action)}
                     />
                   </div>

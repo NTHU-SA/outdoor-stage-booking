@@ -248,3 +248,32 @@ export async function getOtherAreaBookingsDuring(
     }))
 }
 
+export async function checkBookingOverlap(
+  roomId: string,
+  startIso: string,
+  endIso: string,
+  excludeBookingId?: string
+): Promise<boolean> {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('bookings')
+    .select('id')
+    .eq('room_id', roomId)
+    .in('status', ['pending', 'approved'])
+    .filter('start_time', 'lt', endIso)
+    .filter('end_time', 'gt', startIso)
+
+  if (excludeBookingId) {
+    query = query.neq('id', excludeBookingId)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error checking overlap:', error)
+    return true // fail safe: prevent booking if error
+  }
+
+  return data.length > 0
+}

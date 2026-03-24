@@ -48,6 +48,7 @@ export function OverviewCalendar() {
   const [events, setEvents] = useState<AllRoomBookingEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [roomFilters, setRoomFilters] = useState<RoomFilter[]>([])
+  const [showPending, setShowPending] = useState(true)
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
@@ -116,6 +117,7 @@ export function OverviewCalendar() {
   const calendarEvents: EventInput[] = useMemo(() => {
     return events
       .filter(e => visibleRoomIds.has(e.roomId))
+      .filter(e => showPending || e.status !== 'pending')
       .map(event => {
         const color = roomColorMap.get(event.roomId) || ROOM_COLORS[0]
         const isPending = event.status === 'pending'
@@ -125,11 +127,11 @@ export function OverviewCalendar() {
           title: event.title,
           start: event.start,
           end: event.end,
-          backgroundColor: isPending ? '#9ca3af' : color.bg, // bg-gray-400
-          borderColor: isPending ? '#4b5563' : color.border, // border-gray-600
+          backgroundColor: color.bg,
+          borderColor: color.border,
           borderWidth: isPending ? '2px' : undefined,
           borderStyle: isPending ? 'dashed' : undefined,
-          textColor: isPending ? '#1f2937' : '#ffffff', // text-gray-800 for contrast
+          textColor: '#ffffff',
           extendedProps: {
             status: event.status,
             details: event.details,
@@ -137,7 +139,7 @@ export function OverviewCalendar() {
           },
         }
       })
-  }, [events, visibleRoomIds, roomColorMap])
+  }, [events, visibleRoomIds, roomColorMap, showPending])
 
   return (
     <div className="space-y-4">
@@ -164,6 +166,20 @@ export function OverviewCalendar() {
             {room.name}
           </button>
         ))}
+        <button
+          onClick={() => setShowPending(!showPending)}
+          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:bg-muted"
+          style={{
+            backgroundColor: showPending ? '#6b7280' : undefined,
+            color: showPending ? '#fff' : undefined,
+            borderColor: '#6b7280',
+            opacity: showPending ? 1 : 0.5,
+            borderStyle: 'dashed',
+            borderWidth: '2px',
+          }}
+        >
+          審核中
+        </button>
       </div>
 
       {/* Calendar */}
@@ -187,12 +203,7 @@ export function OverviewCalendar() {
           views={{
             dayGridMonth: {
               dayHeaderFormat: { weekday: 'short' },
-            },
-            timeGridWeek: {
-              type: 'timeGrid',
-              duration: { days: 7 },
-              buttonText: '週',
-            },
+            }
           }}
           buttonText={{
             today: '今天',
@@ -232,18 +243,6 @@ export function OverviewCalendar() {
           stickyHeaderDates={true}
           eventDisplay="block"
         />
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-blue-500" />
-          <span>已核准</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-gray-400 border border-dashed border-gray-600" />
-          <span>審核中</span>
-        </div>
       </div>
     </div>
   )

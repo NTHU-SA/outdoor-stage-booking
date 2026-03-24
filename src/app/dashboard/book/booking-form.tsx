@@ -183,7 +183,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
     }
   }
 
-  const timeSlots = generateTimeSlots()
+  const timeSlots = generateTimeSlots(isAdmin)
 
   // Get current and next semester for display
   const maxBookableMonths = getMaxBookableMonths()
@@ -264,7 +264,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
                       disabled={(date) => {
                         const today = new Date()
                         today.setHours(0, 0, 0, 0)
-                        if (date < today) return true
+                        if (!isAdmin && date < today) return true
                         if (!isAdmin) {
                           const minDate = new Date(today)
                           minDate.setDate(today.getDate() + MIN_ADVANCE_DAYS)
@@ -317,7 +317,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
                       disabled={(date) => {
                         const today = new Date()
                         today.setHours(0, 0, 0, 0)
-                        if (date < today) return true
+                        if (!isAdmin && date < today) return true
                         if (!isAdmin) {
                           const minDate = new Date(today)
                           minDate.setDate(today.getDate() + MIN_ADVANCE_DAYS)

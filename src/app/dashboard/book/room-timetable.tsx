@@ -19,9 +19,10 @@ type RoomTimetableProps = {
   selectedSlot?: { start: Date; end: Date } | null
   excludeBookingId?: string
   focusDate?: Date
+  isAdmin?: boolean
 }
 
-export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate }: RoomTimetableProps) {
+export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate, isAdmin }: RoomTimetableProps) {
   const [events, setEvents] = useState<TimetableEvent[]>([])
   const [loading, setLoading] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
@@ -100,14 +101,14 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
     const end = selectInfo.end
 
     // Check if past time
-    if (start < now) {
+    if (!isAdmin && start < now) {
       toast.error("無法選擇過去的時間")
       selectInfo.view.calendar.unselect()
       return
     }
 
     // Only allow selection in future (double check)
-    if (start >= now) {
+    if (isAdmin || start >= now) {
       onSelectSlot?.({ start, end })
     }
 
@@ -139,11 +140,6 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
             dayHeaderFormat: {
               weekday: 'short',
             },
-          },
-          timeGridWeek: {
-            type: 'timeGrid',
-            duration: { days: 7 },
-            buttonText: '週',
           }
         }}
         buttonText={{
@@ -153,8 +149,8 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           day: '日',
         }}
         slotDuration="00:30:00"
-        slotMinTime="08:00:00"
-        slotMaxTime="22:00:00"
+        slotMinTime={isAdmin ? "00:00:00" : "08:00:00"}
+        slotMaxTime={isAdmin ? "24:00:00" : "22:00:00"}
         slotLabelInterval="01:00:00"
         slotLabelFormat={{
           hour: '2-digit',

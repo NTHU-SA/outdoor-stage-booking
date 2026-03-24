@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import type { Room } from "@/utils/supabase/queries"
 import { validateBookingRules, generateTimeSlots } from "@/app/dashboard/book/utils"
-import { getOtherAreaBookingsDuring, type OtherAreaBookingStatus } from "@/app/actions/bookings"
+import { getOtherAreaBookingsDuring, type OtherAreaBookingStatus, checkBookingOverlap } from "@/app/actions/bookings"
 import {
   Select,
   SelectContent,
@@ -59,6 +59,7 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
   const [useSocket, setUseSocket] = useState(false)
   const [otherAreaBookings, setOtherAreaBookings] = useState<OtherAreaBookingStatus[]>([])
   const [loadingOtherAreaBookings, setLoadingOtherAreaBookings] = useState(false)
+  const [isValidatingSlot, setIsValidatingSlot] = useState(false)
 
   const getDefaultBorrowingUnitKey = (userId: string | null | undefined) => `defaultBorrowingUnit:${userId ?? 'guest'}`
 
@@ -123,7 +124,7 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
     fetchOtherAreaBookings()
   }, [isDialogOpen, selectedSlot, room.id])
 
-  const handleReserveClick = () => {
+  const handleReserveClick = async () => {
     // Removed user check here to allow guests to click reserve and enter details
     if (!selectedSlot) {
       toast.error("請先選擇預約時間")
@@ -143,7 +144,25 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
       return
     }
 
-    setIsDialogOpen(true)
+    setIsValidatingSlot(true)
+    try {
+      const hasOverlap = await checkBookingOverlap(
+        room.id,
+        selectedSlot.start.toISOString(),
+        selectedSlot.end.toISOString()
+      )
+
+      if (hasOverlap) {
+        toast.error("該時段已被其他人預約，請選擇其他時間")
+        return
+      }
+
+      setIsDialogOpen(true)
+    } catch (error) {
+      toast.error("檢查時段失敗，請稍後再試")
+    } finally {
+      setIsValidatingSlot(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -222,7 +241,7 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
     }
   }
 
-  const timeSlots = generateTimeSlots()
+  const timeSlots = generateTimeSlots(isAdmin)
 
   // Helper to handle time changes
   const updateTime = (type: 'start' | 'end', timeStr: string) => {
@@ -354,8 +373,8 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
                         const today = new Date()
                         today.setHours(0, 0, 0, 0)
 
-                        // Always disable past dates
-                        if (date < today) return true
+                        // Always disable past dates for non-admins
+                        if (!isAdmin && date < today) return true
 
                         // If user is NOT admin, apply additional restrictions
                         if (!isAdmin) {
@@ -409,7 +428,7 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
                         const today = new Date()
                         today.setHours(0, 0, 0, 0)
 
-                        if (date < today) return true
+                        if (!isAdmin && date < today) return true
 
                         if (!isAdmin) {
                           const minDate = new Date(today)
@@ -473,9 +492,9 @@ export function BookingWidget({ room, isAdmin, selectedSlot, onChange }: Booking
           <Button
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg h-12 font-semibold"
             onClick={handleReserveClick}
-            disabled={!selectedSlot}
+            disabled={!selectedSlot || isValidatingSlot}
           >
-            預約
+            {isValidatingSlot ? "檢查時段中..." : "預約"}
           </Button>
         </div>
       </div>

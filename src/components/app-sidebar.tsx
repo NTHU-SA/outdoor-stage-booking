@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, CalendarDays, Home, Inbox, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList, LogIn, ShieldCheck } from "lucide-react"
+import { Calendar, CalendarDays, Home, Inbox, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList, LogIn } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -75,19 +75,11 @@ const adminItems = [
   },
 ]
 
-// Items for users who are room approvers (non-admin)
-const approverItems = [
-  {
-    title: "多階層審核任務",
-    url: "/dashboard/admin/approver-review",
-    icon: ShieldCheck,
-  },
-]
+
 
 export function AppSidebar() {
   const { user, loading } = useUser()
   const [isAdmin, setIsAdmin] = useState(false)
-  const [isApprover, setIsApprover] = useState(false)
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const pathname = usePathname()
@@ -102,7 +94,6 @@ export function AppSidebar() {
     const checkAdmin = async () => {
       if (!user) {
         setIsAdmin(false)
-        setIsApprover(false)
         return
       }
 
@@ -113,15 +104,6 @@ export function AppSidebar() {
         .single()
 
       setIsAdmin(profile?.role === 'admin')
-
-      // Check if user is an approver for any room
-      const { data: approverRoles } = await supabase
-        .from('room_approvers')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
-
-      setIsApprover(!!approverRoles && approverRoles.length > 0)
     }
 
     checkAdmin()
@@ -198,25 +180,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {isApprover && (
-          <SidebarGroup>
-            <SidebarGroupLabel>審核管理</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {approverItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={pathname === item.url}>
-                      <a href={item.url} onClick={handleMobileNavClick}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

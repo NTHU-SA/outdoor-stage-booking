@@ -52,6 +52,7 @@ import {
   getMaxBookableMonths,
   isDateWithin4Months
 } from "@/utils/semester"
+import { generateTimeSlots } from "@/app/dashboard/book/utils"
 
 const bookingFormSchema = z.object({
   roomId: z.string({
@@ -297,13 +298,8 @@ export function EditBookingDialog({ booking, rooms, children }: EditBookingDialo
     }
   }
 
-  // Generate 30-minute interval time slots from 08:00 to 22:00
-  const timeSlots = Array.from({ length: 29 }, (_, i) => {
-    const totalMinutes = (16 + i) * 30 // start from slot 16 = 08:00
-    const hour = Math.floor(totalMinutes / 60)
-    const minute = totalMinutes % 60
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-  })
+  // Generate time slots based on admin role
+  const timeSlots = generateTimeSlots(isAdmin)
 
   // Get current and next semester for display
   const maxBookableMonths = getMaxBookableMonths()
@@ -397,7 +393,7 @@ export function EditBookingDialog({ booking, rooms, children }: EditBookingDialo
                                 disabled={(date) => {
                                   const today = new Date()
                                   today.setHours(0, 0, 0, 0)
-                                  if (date < today) return true
+                                  if (!isAdmin && date < today) return true
                                   if (!isAdmin) {
                                     const minDate = new Date(today)
                                     minDate.setDate(today.getDate() + 1)
@@ -450,7 +446,7 @@ export function EditBookingDialog({ booking, rooms, children }: EditBookingDialo
                                 disabled={(date) => {
                                   const today = new Date()
                                   today.setHours(0, 0, 0, 0)
-                                  if (date < today) return true
+                                  if (!isAdmin && date < today) return true
                                   if (!isAdmin) {
                                     const minDate = new Date(today)
                                     minDate.setDate(today.getDate() + 1)
@@ -604,6 +600,7 @@ export function EditBookingDialog({ booking, rooms, children }: EditBookingDialo
                       selectedSlot={selectedSlot}
                       excludeBookingId={booking.id}
                       focusDate={form.watch("startDate")}
+                      isAdmin={isAdmin}
                     />
                   ) : (
                     <div className="h-[600px] flex items-center justify-center text-muted-foreground border rounded-lg">
