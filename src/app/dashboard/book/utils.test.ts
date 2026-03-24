@@ -306,6 +306,48 @@ describe('generateTimeSlots', () => {
 })
 
 describe('multi-slot helpers', () => {
+  it('expandRepeatedSlotsForList should return empty array when base slots are empty', () => {
+    const result = expandRepeatedSlotsForList([], 'weekly', new Date('2026-04-10T00:00:00.000Z'))
+    expect(result).toEqual([])
+  })
+
+  it('expandRepeatedSlotsForList should return normalized slots when repeat pattern is none', () => {
+    const baseSlots = [
+      { start: new Date('2026-03-31T10:00:00.000Z'), end: new Date('2026-03-31T11:00:00.000Z') },
+      { start: new Date('2026-03-30T10:00:00.000Z'), end: new Date('2026-03-30T11:00:00.000Z') },
+      { start: new Date('2026-03-31T10:00:00.000Z'), end: new Date('2026-03-31T11:00:00.000Z') },
+    ]
+
+    const result = expandRepeatedSlotsForList(baseSlots, 'none')
+    expect(result).not.toBeNull()
+    expect(result?.length).toBe(2)
+    expect(result?.[0].start.toISOString()).toBe('2026-03-30T10:00:00.000Z')
+    expect(result?.[1].start.toISOString()).toBe('2026-03-31T10:00:00.000Z')
+  })
+
+  it('expandRepeatedSlotsForList should return null when repeatUntil is missing for repeated patterns', () => {
+    const baseSlots = [
+      { start: new Date('2026-03-30T10:00:00.000Z'), end: new Date('2026-03-30T11:00:00.000Z') },
+    ]
+
+    const result = expandRepeatedSlotsForList(baseSlots, 'daily')
+    expect(result).toBeNull()
+  })
+
+  it('expandRepeatedSlotsForList should stop when reaching custom maxSlots', () => {
+    const baseSlots = [
+      { start: new Date('2026-03-30T10:00:00.000Z'), end: new Date('2026-03-30T11:00:00.000Z') },
+      { start: new Date('2026-03-31T10:00:00.000Z'), end: new Date('2026-03-31T11:00:00.000Z') },
+    ]
+
+    const repeatUntil = new Date('2026-04-30T00:00:00.000Z')
+    const result = expandRepeatedSlotsForList(baseSlots, 'daily', repeatUntil, 1)
+
+    expect(result).not.toBeNull()
+    expect(result?.length).toBe(1)
+    expect(result?.[0].start.toISOString()).toBe('2026-03-30T10:00:00.000Z')
+  })
+
   it('expandRepeatedSlots should return null when repeat requires end date but not provided', () => {
     const baseStart = new Date('2026-03-30T10:00:00.000Z')
     const baseEnd = new Date('2026-03-30T11:00:00.000Z')

@@ -29,11 +29,16 @@ describe('useUser', () => {
     })
   })
 
-  it('should start with loading=true and user=null', () => {
+  it('should start with loading=true and user=null', async () => {
     const { result } = renderHook(() => useUser())
     // Initially loading
     expect(result.current.loading).toBe(true)
     expect(result.current.user).toBeNull()
+
+    // Wait for initial effect to settle so test does not end mid-update.
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
   })
 
   it('should set user after getUser resolves', async () => {
@@ -62,6 +67,7 @@ describe('useUser', () => {
   })
 
   it('should handle getUser error gracefully', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mockGetUser.mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(() => useUser())
@@ -71,6 +77,8 @@ describe('useUser', () => {
     })
 
     expect(result.current.user).toBeNull()
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
   })
 
   it('should update user on auth state change', async () => {
