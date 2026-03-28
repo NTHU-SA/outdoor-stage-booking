@@ -57,6 +57,7 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
   const [name, setName] = useState(room?.name || "")
   const [description, setDescription] = useState(room?.description || "")
   const [imageUrl, setImageUrl] = useState(room?.image_url || "")
+  const [color, setColor] = useState(room?.color || "")
   const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>(
     (room?.unavailable_periods && Array.isArray(room.unavailable_periods))
       ? room.unavailable_periods
@@ -86,6 +87,7 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
       setName(room.name || "")
       setDescription(room.description || "")
       setImageUrl(room.image_url || "")
+      setColor(room.color || "")
       setUnavailablePeriods(
         (room.unavailable_periods && Array.isArray(room.unavailable_periods))
           ? room.unavailable_periods
@@ -96,6 +98,7 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
       setName("")
       setDescription("")
       setImageUrl("")
+      setColor("")
       setUnavailablePeriods([])
     }
   }, [open, room, mode])
@@ -107,6 +110,7 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
         name,
         description,
         imageUrl,
+        color,
         unavailablePeriods,
       }))
     }
@@ -118,6 +122,7 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
         name,
         description,
         imageUrl,
+        color,
         unavailablePeriods,
       })
 
@@ -159,6 +164,7 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
         description: description || null,
         unavailable_periods: unavailablePeriods,
         image_url: imageUrl || null, // Ensure empty string becomes null
+        color: color || null,
       }
 
       if (mode === "create") {
@@ -264,10 +270,40 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">名稱</Label>
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="color">日曆標籤顏色</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="color"
+                        type="color"
+                        value={color || "#000000"}
+                        onChange={(e) => setColor(e.target.value)}
+                        className="w-12 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        value={color || ""}
+                        onChange={(e) => setColor(e.target.value)}
+                        placeholder="例如: #1F9C29"
+                        className="flex-1 uppercase font-mono"
+                        pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                      />
+                      {color && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setColor("")}
+                          title="清除顏色，改回自動分配"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

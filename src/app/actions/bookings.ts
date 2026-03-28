@@ -118,6 +118,7 @@ export async function getRoomBookings(roomId: string, excludeBookingId?: string)
 export type AllRoomBookingEvent = TimetableEvent & {
   roomId: string
   roomName: string
+  roomColor: string | null
 }
 
 export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
@@ -137,7 +138,7 @@ export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
   // Fetch all active rooms
   const { data: rooms } = await supabase
     .from('rooms')
-    .select('id, name')
+    .select('id, name, color')
     .eq('is_active', true)
 
   if (!rooms || rooms.length === 0) return []
@@ -166,7 +167,7 @@ export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
     return []
   }
 
-  const roomMap = new Map(rooms.map(r => [r.id, r.name]))
+  const roomMap = new Map(rooms.map(r => [r.id, { name: r.name, color: r.color }]))
 
   type AllBookingRow = BookingRow & { room_id: string }
   const bookings = data as unknown as AllBookingRow[]
@@ -174,7 +175,9 @@ export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
   return bookings
     .filter(b => roomMap.has(b.room_id))
     .map((booking) => {
-      const roomName = roomMap.get(booking.room_id) || '未命名空間'
+      const roomInfo = roomMap.get(booking.room_id)
+      const roomName = roomInfo?.name || '未命名空間'
+      const roomColor = roomInfo?.color || null
       let title = ''
       let details = ''
 
@@ -202,6 +205,7 @@ export async function getAllRoomBookings(): Promise<AllRoomBookingEvent[]> {
         details: isAdmin ? details : undefined,
         roomId: booking.room_id,
         roomName,
+        roomColor,
       }
     })
 }

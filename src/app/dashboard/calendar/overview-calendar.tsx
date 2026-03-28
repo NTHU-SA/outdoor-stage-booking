@@ -13,8 +13,8 @@ import '../book/room-timetable.css'
 
 // Color palette for different rooms
 const ROOM_COLORS = [
-  { bg: '#3b82f6', border: '#2563eb' }, // Blue
-  { bg: '#10b981', border: '#059669' }, // Emerald
+  { bg: '#1f9c29', border: '#2563eb' }, // Green
+  { bg: '#d68720', border: '#059669' }, // Orange
   { bg: '#f59e0b', border: '#d97706' }, // Amber
   { bg: '#8b5cf6', border: '#7c3aed' }, // Violet
   { bg: '#ec4899', border: '#db2777' }, // Pink
@@ -57,10 +57,10 @@ export function OverviewCalendar() {
       setEvents(data)
 
       // Extract unique rooms and assign colors
-      const roomMap = new Map<string, string>()
+      const roomMap = new Map<string, { name: string, specificColor: string | null }>()
       data.forEach(e => {
         if (!roomMap.has(e.roomId)) {
-          roomMap.set(e.roomId, e.roomName)
+          roomMap.set(e.roomId, { name: e.roomName, specificColor: e.roomColor })
         }
       })
 
@@ -69,14 +69,22 @@ export function OverviewCalendar() {
         const prevMap = new Map(prev.map(r => [r.id, r.visible]))
         const filters: RoomFilter[] = []
         let i = 0
-        roomMap.forEach((name, id) => {
+        roomMap.forEach((info, id) => {
+          // If specific hex color is provided from DB, use it for both bg and border
+          const colorObj = info.specificColor
+            ? { bg: info.specificColor, border: info.specificColor }
+            : getRoomColor(i)
+            
           filters.push({
             id,
-            name,
-            color: getRoomColor(i),
+            name: info.name,
+            color: colorObj,
             visible: prevMap.get(id) ?? true,
           })
-          i++
+          
+          if (!info.specificColor) {
+            i++ // Only increment default color index if custom color is not used
+          }
         })
         return filters
       })
