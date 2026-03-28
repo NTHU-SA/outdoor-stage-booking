@@ -54,11 +54,10 @@ export default function RulesPage() {
               <p className="text-sm leading-relaxed">
                 野台可透過本系統借用之時段為{" "}
                 <span className="font-semibold text-red-600">每日 8:00 A.M. 至 10:00 P.M.</span>
-                ，一日原則上最多借用{" "}
+                ，每日原則上最多借用{" "}
                 <span className="font-semibold text-red-600">4 小時</span>
-                ，一個月最多借用{" "}
-                <span className="font-semibold text-red-600">12 天</span>
-                ，若一次需借用 3 日以上或系統故障，請致信學生會信箱申請。
+                ，每個月最多借用{" "}
+                <span className="font-semibold text-red-600">12 天</span>。
               </p>
             </div>
             <div className="flex gap-3">
@@ -72,20 +71,22 @@ export default function RulesPage() {
             <div className="flex gap-3">
               <Badge variant="outline" className="shrink-0 mt-0.5">3</Badge>
               <p className="text-sm leading-relaxed">
-                若需借用{" "}
-                <span className="font-semibold">非開放時段</span>{" "}
-                或{" "}
-                <span className="font-semibold">連日借用</span>
-                ，請寄信至學生會信箱說明需求，經審核同意後方可借用。
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Badge variant="outline" className="shrink-0 mt-0.5">4</Badge>
-              <p className="text-sm leading-relaxed">
                 若需取消或異動，請於{" "}
                 <span className="font-semibold text-red-600">借用日前 2 日</span>{" "}
                 聯繫學生會。
               </p>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="shrink-0 mt-0.5">4</Badge>
+              <div className="text-sm leading-relaxed">
+                <p>有下列情形，請依第六點「聯繫方式與例外申請」之規定辦理：</p>
+                <ul className="list-disc pl-5 mt-1 text-muted-foreground">
+                  <li>需借用非開放時段</li>
+                  <li>系統無法使用或發生異常</li>
+                  <li>其他特殊情形</li>
+                </ul>
+                <p className="mt-1">學生會得依申請內容及實際情況審核後決定是否同意借用。</p>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -115,20 +116,11 @@ export default function RulesPage() {
               <Badge variant="outline" className="shrink-0 mt-0.5">2</Badge>
               <div className="text-sm leading-relaxed">
                 <p>
-                  校外單位以收費為借用原則，每{" "}
-                  <span className="font-semibold">2 小時</span>{" "}
-                  為一單位，不足 2 小時以 2 小時計，費用為{" "}
-                  <span className="font-semibold text-red-600">新臺幣 500 元整</span>
-                  ，若有特殊需求或價格疑問請透過學生會信箱說明。
+                  <span className="font-semibold">校外單位不得透過本系統申請借用野台。</span>
+                  <br />
+                  如有借用需求，應依第六點「聯繫方式與例外申請」之規定提出申請，經學生會審核後辦理借用事宜。
                 </p>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <Badge variant="outline" className="shrink-0 mt-0.5">3</Badge>
-              <p className="text-sm leading-relaxed">
-                校外單位將繳費證明寄給學生會信箱期限在{" "}
-                <span className="font-semibold text-red-600">活動結束後 2 日前</span>。
-              </p>
             </div>
           </div>
         </CardContent>
@@ -144,14 +136,16 @@ export default function RulesPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm leading-relaxed">
-            野台分區從面對小吃部方向，分為{" "}
-            <span className="font-semibold">「中間、左邊、右邊、座椅區」</span>{" "}
-            共四區，每次借用{" "}
-            <span className="font-semibold text-red-600">以一區為原則且不得跨區使用</span>
-            ，若有特殊借用需求可透過學生會信箱寄信提出。
+            野台分區以面對小吃部方向為準，分為{" "}
+            <span className="font-semibold" style={{ color: "#dca43c" }}>「右區」</span>、
+            <span className="font-semibold" style={{ color: "#467e39" }}>「中間區」</span>、
+            <span className="font-semibold" style={{ color: "#b642c0" }}>「左區」</span>、
+            <span className="font-semibold" style={{ color: "#332c9b" }}>「座位區」</span>{" "}
+            共四區。<br />
+            每次借用 <span className="font-semibold text-red-600">以一區為原則且不得跨區使用</span>。
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            若有同時段不同借用者同時使用野台情況，請自行協調或透過學生會信箱向另一借用單位協調借用區域範圍。
+            如有同時借用多區或其他特殊需求者，請依第六點「聯繫方式與例外申請」之規定辦理。
           </p>
 
           {/* 野台位置示意圖 placeholder */}
@@ -181,12 +175,12 @@ export default function RulesPage() {
         </CardContent>
       </Card>
 
-      {/* 四、使用規範與器材 */}
+      {/* 四、使用規範 */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5" />
-            四、使用規範與器材
+            四、使用規範
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -195,10 +189,9 @@ export default function RulesPage() {
               <Badge variant="outline" className="shrink-0 mt-0.5">1</Badge>
               <div className="text-sm leading-relaxed">
                 <p>
-                  <span className="font-semibold">電力使用：</span>
-                  僅提供{" "}
-                  <span className="font-semibold">3 個 110V 插頭</span>
-                  。若有大型用電需求，請務必事前與學生會商議並取得同意。
+                  野台提供 {" "}
+                  <span className="font-semibold">3 個 110V 插座</span>位於無障礙坡道牆面，插座位置如分區示意圖所標示。
+                  若有大型用電需求，請務必事前與學生會商議並取得同意方可使用。
                 </p>
               </div>
             </div>
@@ -206,8 +199,11 @@ export default function RulesPage() {
               <Badge variant="outline" className="shrink-0 mt-0.5">2</Badge>
               <div className="text-sm leading-relaxed">
                 <p>
-                  <span className="font-semibold">器材準備：</span>
-                  學生會僅提供「場地」，不提供桌椅等器材。如有需求請參考「課外組器材管理要點」自行籌措。
+                  學生會僅提供「場地」，不提供桌椅等器材。如有需求請參考「課外組器材管理要點」，於{" "}
+                  <a href="https://club.site.nthu.edu.tw/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline dark:text-blue-400 font-semibold">
+                    國立清華大學社團管理系統
+                  </a>{" "}
+                  申請租借器材。
                 </p>
               </div>
             </div>
@@ -215,8 +211,7 @@ export default function RulesPage() {
               <Badge variant="outline" className="shrink-0 mt-0.5">3</Badge>
               <div className="text-sm leading-relaxed">
                 <p>
-                  <span className="font-semibold">場地恢復：</span>
-                  借用單位須負場地安全與整潔責任。使用結束時，須將物品淨空並恢復原狀。若造成場地或設施損壞，須負修復或賠償責任。
+                  借用單位須負場地安全與整潔責任。使用結束時，須將物品淨空並恢復借用前狀況。若造成場地或設施損壞，須負修復或賠償責任。
                 </p>
               </div>
             </div>
@@ -271,22 +266,41 @@ export default function RulesPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* 聯繫資訊 */}
+六、例外申請及聯繫方式 */
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            聯繫方式
+            六、例外申請及聯繫方式
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm leading-relaxed">
-            如有任何問題或特殊需求，請寄信至學生會信箱：
-            <a href={`mailto:${SA_EMAIL}`} className="ml-1 font-semibold text-blue-600 hover:underline dark:text-blue-400">
-              {SA_EMAIL}
-            </a>
-          </p>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <h4 className="font-semibold text-sm bg-secondary/50 p-2 rounded w-fit">【校內單位特殊申請】（限學生社團及校內單位）</h4>
+            <p className="text-sm text-muted-foreground">如有下列情形，請依本點規定提出申請：</p>
+            <ul className="list-disc pl-5 text-sm space-y-1">
+              <li>借用非開放時段</li>
+              <li>同時段借用多區</li>
+              <li>系統無法使用或發生異常</li>
+              <li>其他特殊情形</li>
+            </ul>
+            <p className="text-sm">學生會得依申請內容及實際情況審核後決定是否同意借用。</p>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-semibold text-sm bg-secondary/50 p-2 rounded w-fit">【校外單位申請】（限企業及校外單位）</h4>
+            <p className="text-sm">校外單位不得透過本系統申請借用野台，如有需求，須透過電子郵件提出申請，經審核同意後辦理。</p>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-semibold text-sm bg-secondary/50 p-2 rounded w-fit">【一般聯繫方式】</h4>
+            <p className="text-sm leading-relaxed">
+              如有其他問題，請寄信至學生會信箱：
+              <a href={`mailto:${SA_EMAIL}`} className="ml-1 font-semibold text-blue-600 hover:underline dark:text-blue-400">
+                {SA_EMAIL}
+              </a>
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -299,17 +313,17 @@ export default function RulesPage() {
           {/* 簡易文字流程 */}
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {[
-              "填寫借用申請表單",
-              "學生會審核申請",
-              "審核通過，確認借用",
-              "借用單位使用場地",
-              "使用完畢，恢復場地原狀",
+              "提出借用申請",
+              "學生會審核",
+              "審核通過並完成預約",
+              "依申請時段使用場地",
+              "使用完畢恢復場地",
             ].map((step, index, arr) => (
-              <div key={step} className="flex items-center gap-2">
+              <div key={step} className="flex items-center gap-2 mb-2">
                 <span className="font-medium text-foreground px-2 py-1 bg-secondary rounded-md">
                   {step}
                 </span>
-                {index < arr.length - 1 && <span>→</span>}
+                {index < arr.length - 1 && <span className="text-muted-foreground/50">→</span>}
               </div>
             ))}
           </div>
