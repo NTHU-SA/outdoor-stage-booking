@@ -98,10 +98,10 @@ export async function PUT(
     // Check restrictions for non-admins
     if (!isAdmin) {
       // Check booking time is within allowed hours (08:00 - 22:00)
-      const startHour = startTime.getHours()
-      const startMin = startTime.getMinutes()
-      const endHour = endTime.getHours()
-      const endMin = endTime.getMinutes()
+      const startHour = (startTime.getUTCHours() + 8) % 24
+      const startMin = startTime.getUTCMinutes()
+      const endHour = (endTime.getUTCHours() + 8) % 24
+      const endMin = endTime.getUTCMinutes()
       
       const startMins = startHour * 60 + startMin
       const endMins = endHour * 60 + endMin
@@ -157,12 +157,14 @@ export async function PUT(
 
     // Check unavailable periods
 
-    if (room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
+    if (!isAdmin && room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
       const periods = room.unavailable_periods as UnavailablePeriod[]
       const bookingDay = startTime.getDay()
       
-      const bookingStartMins = startTime.getHours() * 60 + startTime.getMinutes()
-      const bookingEndMins = endTime.getHours() * 60 + endTime.getMinutes()
+      const startHour = (startTime.getUTCHours() + 8) % 24
+      const endHour = (endTime.getUTCHours() + 8) % 24
+      const bookingStartMins = startHour * 60 + startTime.getUTCMinutes()
+      const bookingEndMins = endHour * 60 + endTime.getUTCMinutes()
       
       for (const period of periods) {
         if (period.day === bookingDay) {

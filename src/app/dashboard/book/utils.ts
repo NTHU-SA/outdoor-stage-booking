@@ -63,18 +63,21 @@ export function validateBookingRules(
 
     if (effectiveStart >= effectiveEnd) return false
 
-    const requestStart = effectiveStart.getHours() * 60 + effectiveStart.getMinutes()
-    const requestEnd = effectiveEnd.getHours() * 60 + effectiveEnd.getMinutes()
+    const startH = (effectiveStart.getUTCHours() + 8) % 24
+    const endH = (effectiveEnd.getUTCHours() + 8) % 24
+
+    const requestStart = startH * 60 + effectiveStart.getUTCMinutes()
+    const requestEnd = endH * 60 + effectiveEnd.getUTCMinutes()
 
     return Math.max(requestStart, startMins) < Math.min(requestEnd, endMins)
   }
 
   // 1. Check booking time is within allowed hours (08:00 - 22:00)
   if (!isAdmin) {
-    const startHour = startTime.getHours()
-    const startMin = startTime.getMinutes()
-    const endHour = endTime.getHours()
-    const endMin = endTime.getMinutes()
+    const startHour = (startTime.getUTCHours() + 8) % 24
+    const startMin = startTime.getUTCMinutes()
+    const endHour = (endTime.getUTCHours() + 8) % 24
+    const endMin = endTime.getUTCMinutes()
 
     const startMins = startHour * 60 + startMin
     const endMins = endHour * 60 + endMin
@@ -138,7 +141,9 @@ export function validateBookingRules(
   startDay.setHours(0, 0, 0, 0)
   const endDay = new Date(endTime)
   const effectiveEnd = new Date(endTime)
-  if (effectiveEnd.getHours() === 0 && effectiveEnd.getMinutes() === 0 && effectiveEnd.getSeconds() === 0 && effectiveEnd > startTime) {
+  
+  const effectiveEndHour = (effectiveEnd.getUTCHours() + 8) % 24
+  if (effectiveEndHour === 0 && effectiveEnd.getUTCMinutes() === 0 && effectiveEnd.getSeconds() === 0 && effectiveEnd > startTime) {
     effectiveEnd.setDate(effectiveEnd.getDate() - 1)
   }
   endDay.setTime(effectiveEnd.getTime())

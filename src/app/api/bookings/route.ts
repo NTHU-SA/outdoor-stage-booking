@@ -58,8 +58,11 @@ function overlapWithDayMinutes(rangeStart: Date, rangeEnd: Date, day: Date, star
 
   if (effectiveStart >= effectiveEnd) return false
 
-  const requestStart = effectiveStart.getHours() * 60 + effectiveStart.getMinutes()
-  const requestEnd = effectiveEnd.getHours() * 60 + effectiveEnd.getMinutes()
+  const startHour = (effectiveStart.getUTCHours() + 8) % 24
+  const endHour = (effectiveEnd.getUTCHours() + 8) % 24
+
+  const requestStart = startHour * 60 + effectiveStart.getUTCMinutes()
+  const requestEnd = endHour * 60 + effectiveEnd.getUTCMinutes()
 
   return Math.max(requestStart, startMins) < Math.min(requestEnd, endMins)
 }
@@ -83,10 +86,10 @@ function validateSingleSlot(
   }
 
   if (!isAdmin) {
-    const startHour = startTime.getHours()
-    const startMin = startTime.getMinutes()
-    const endHour = endTime.getHours()
-    const endMin = endTime.getMinutes()
+    const startHour = (startTime.getUTCHours() + 8) % 24
+    const startMin = startTime.getUTCMinutes()
+    const endHour = (endTime.getUTCHours() + 8) % 24
+    const endMin = endTime.getUTCMinutes()
 
     const startMins = startHour * 60 + startMin
     const endMins = endHour * 60 + endMin
@@ -146,7 +149,8 @@ function validateSingleSlot(
   startDay.setHours(0, 0, 0, 0)
   const endDay = new Date(endTime)
   const effectiveEnd = new Date(endTime)
-  if (effectiveEnd.getHours() === 0 && effectiveEnd.getMinutes() === 0 && effectiveEnd.getSeconds() === 0 && effectiveEnd > startTime) {
+  const endHour = (effectiveEnd.getUTCHours() + 8) % 24
+  if (endHour === 0 && effectiveEnd.getUTCMinutes() === 0 && effectiveEnd.getSeconds() === 0 && effectiveEnd > startTime) {
     effectiveEnd.setDate(effectiveEnd.getDate() - 1)
   }
   endDay.setTime(effectiveEnd.getTime())

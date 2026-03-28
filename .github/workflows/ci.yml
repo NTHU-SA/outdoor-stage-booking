@@ -15,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 這是正確的，保留完整 Git 歷史
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
