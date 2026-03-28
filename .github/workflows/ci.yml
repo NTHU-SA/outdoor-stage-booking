@@ -7,15 +7,15 @@ on:
     branches: [main, develop]
 
 jobs:
-  test:
-    name: Unit Tests & Coverage
+  build-and-scan:
+    name: Build, Test & SonarCloud Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Shallow clones should be disabled for SonarQube
+          fetch-depth: 0 # 這是正確的，保留完整 Git 歷史
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -26,73 +26,28 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Run linter
-        run: pnpm lint
-        continue-on-error: true
 
       - name: Run unit tests with coverage
         run: pnpm test:coverage
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
+        
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 30
-
-  sonarqube:
-    name: SonarQube Analysis
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run tests with coverage (for SonarQube)
-        run: pnpm test:coverage
-
-      - name: Skip SonarQube scan when secrets are missing
-        if: env.SONAR_TOKEN == '' || env.SONAR_HOST_URL == ''
-        run: |
-          echo "Skipping SonarQube scan because SONAR_TOKEN or SONAR_HOST_URL is not configured."
-
-      - name: SonarQube Scan
-        if: env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != ''
-        uses: SonarSource/sonarqube-scan-action@v6
+          args: >
+            -Dsonar.organization=nthu-sa
+            -Dsonar.projectKey=nthu-sa
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info

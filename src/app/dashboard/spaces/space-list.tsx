@@ -18,7 +18,7 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2">
             {initialRooms.map(room => (
                 <Link key={room.id} href={`/dashboard/spaces/${room.id}`} className="block group">
-            <div className="relative aspect-16/8 overflow-hidden rounded-xl bg-muted shadow-sm transition-shadow group-hover:shadow-md">
+            <div className="relative aspect-16/10 overflow-hidden rounded-xl bg-muted shadow-sm transition-shadow group-hover:shadow-md">
                         <RoomImage 
                             src={room.image_url} 
                             alt={room.name} 
@@ -57,7 +57,7 @@ function RoomImage({ src, alt }: { src: string | null, alt: string }) {
             src={finalSrc}
             alt={alt}
             fill
-            className="object-cover transition-transform group-hover:scale-105"
+            className="object-contain transition-transform group-hover:scale-105"
             unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
         />

@@ -12,7 +12,7 @@ export function RoomDetailImage({ src, alt }: { src: string | null, alt: string 
             src={finalSrc}
             alt={alt}
             fill
-            className="object-cover"
+            className="object-contain"
             priority
             unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
