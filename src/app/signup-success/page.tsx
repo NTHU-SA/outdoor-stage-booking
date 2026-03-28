@@ -137,20 +137,6 @@ function SignupSuccessContent() {
               >
                 返回登入頁面
               </Button>
-              {email && (
-                <Button
-                  onClick={() => {
-                    // 嘗試開啟常見的郵件服務
-                    const mailtoLink = `mailto:${email}`
-                    window.open(mailtoLink, '_blank')
-                  }}
-                  className="w-full sm:w-auto"
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  開啟郵件應用程式
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
             </div>
 
             {/* Help Text */}
