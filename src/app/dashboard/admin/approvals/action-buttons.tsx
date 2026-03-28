@@ -123,7 +123,6 @@ export function ActionButtons({
               <Label htmlFor="reason">拒絕原因</Label>
               <Textarea
                 id="reason"
-                placeholder="例如：該時段已有內部會議..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
               />

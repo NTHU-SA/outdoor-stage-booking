@@ -307,3 +307,28 @@
 .dark .fc-wrapper .fc-scroller::-webkit-scrollbar-thumb:hover {
   background: #71717a;
 }
+
+/* Popover styling in dark mode */
+.dark .fc-wrapper .fc-popover {
+  background-color: #18181b;
+  border-color: #3f3f46;
+}
+
+.dark .fc-wrapper .fc-popover-header {
+  background-color: #27272a;
+  color: #fafafa;
+}
+
+.dark .fc-wrapper .fc-popover-body {
+  background-color: #18181b;
+  color: #fafafa;
+}
+
+.dark .fc-wrapper .fc-daygrid-more-link {
+  color: #a1a1aa !important;
+}
+
+.dark .fc-wrapper .fc-daygrid-more-link:hover {
+  color: #fafafa !important;
+  background-color: #27272a !important;
+}
