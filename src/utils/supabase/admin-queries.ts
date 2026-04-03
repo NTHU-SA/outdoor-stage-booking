@@ -26,6 +26,7 @@ export type ApprovalStepInfo = {
 
 export type AdminBooking = Booking & {
   user: {
+    id: string
     full_name: string
     email: string
     student_id: string | null
@@ -148,7 +149,7 @@ export async function getAdminBookings(
     if (authUsers) {
       const emailMap = new Map(authUsers.map(u => [u.id, u.email]))
       bookings = bookings.map(b => {
-        const userId = (b.user as { id: string }).id
+        const userId = b.user.id
         return {
           ...b,
           user: {
