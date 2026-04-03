@@ -14,7 +14,7 @@ export type Room = {
   color: string | null
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function getRooms(includeInactive = false): Promise<Room[]> {
   const supabase = await createClient()
   let query = supabase

@@ -15,6 +15,7 @@ export default function RulesPage() {
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line
     setMounted(true)
   }, [])
 

@@ -26,7 +26,7 @@ type Department = {
   name: string
 }
 
-export default function LoginClient({ }: { }) {
+export default function LoginClient() {
     const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 

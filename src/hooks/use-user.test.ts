@@ -98,6 +98,7 @@ describe('useUser', () => {
     // Simulate auth state change  
     const newUser = { id: 'user-2', email: 'new@example.com' }
     act(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       authChangeCallback?.('SIGNED_IN', { user: newUser } as any)
     })
 

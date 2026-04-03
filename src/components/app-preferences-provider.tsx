@@ -274,6 +274,7 @@ function AppPreferencesInner({ children }: { children: React.ReactNode }) {
   const [resolvedLanguage, setResolvedLanguage] = useState<AppLanguage>("zh")
 
   useEffect(() => {
+    // eslint-disable-next-line
     setMounted(true)
 
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)

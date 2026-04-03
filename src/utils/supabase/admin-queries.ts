@@ -148,7 +148,7 @@ export async function getAdminBookings(
     if (authUsers) {
       const emailMap = new Map(authUsers.map(u => [u.id, u.email]))
       bookings = bookings.map(b => {
-        const userId = (b.user as any).id
+        const userId = (b.user as { id: string }).id
         return {
           ...b,
           user: {
