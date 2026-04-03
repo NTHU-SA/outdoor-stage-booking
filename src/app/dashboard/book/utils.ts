@@ -74,10 +74,10 @@ export function validateBookingRules(
 
   // 1. Check booking time is within allowed hours (08:00 - 22:00)
   if (!isAdmin) {
-    const startHour = (startTime.getUTCHours() + 8) % 24
-    const startMin = startTime.getUTCMinutes()
-    const endHour = (endTime.getUTCHours() + 8) % 24
-    const endMin = endTime.getUTCMinutes()
+    const startHour = startTime.getHours()
+    const startMin = startTime.getMinutes()
+    const endHour = endTime.getHours()
+    const endMin = endTime.getMinutes()
 
     const startMins = startHour * 60 + startMin
     const endMins = endHour * 60 + endMin
