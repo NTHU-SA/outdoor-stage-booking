@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import Image from "next/image"
 import { useTheme } from "next-themes"
-import { AlertTriangle, Clock, Users, MapPin, Zap, Ban, Mail } from "lucide-react"
+import { AlertTriangle, Clock, Users, MapPin, Zap, Ban, Mail, Bold } from "lucide-react"
 
 export default function RulesPage() {
   const SA_EMAIL = "nthusa@gapp.nthu.edu.tw"
@@ -106,7 +106,7 @@ export default function RulesPage() {
               <Badge variant="outline" className="shrink-0 mt-0.5">1</Badge>
               <p className="text-sm leading-relaxed">
                 野台借用以{" "}
-                <span className="font-semibold">學生社團及校內官方團體</span>{" "}
+                <span className="font-semibold">學生社團及校內行政單位</span>{" "}
                 為優先。校外單位及未經報備之團體須禮讓優先對象。學生社團資格以{" "}
                 <span className="font-semibold">課外活動組公告之社團名單</span>{" "}
                 為準。
@@ -199,11 +199,7 @@ export default function RulesPage() {
               <Badge variant="outline" className="shrink-0 mt-0.5">2</Badge>
               <div className="text-sm leading-relaxed">
                 <p>
-                  學生會僅提供「場地」，不提供桌椅等器材。如有需求請參考「課外組器材管理要點」，於{" "}
-                  <a href="https://club.site.nthu.edu.tw/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline dark:text-blue-400 font-semibold">
-                    國立清華大學社團管理系統
-                  </a>{" "}
-                  申請租借器材。
+                  學生會僅提供「場地」，不提供桌椅等器材。如有需求請參考「課外組器材管理要點」，於 國立清華大學社團管理系統 申請租借器材。
                 </p>
               </div>
             </div>
@@ -266,7 +262,6 @@ export default function RulesPage() {
           </div>
         </CardContent>
       </Card>
-六、例外申請及聯繫方式 */
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -277,9 +272,9 @@ export default function RulesPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <h4 className="font-semibold text-sm bg-secondary/50 p-2 rounded w-fit">【校內單位特殊申請】（限學生社團及校內單位）</h4>
-            <p className="text-sm text-muted-foreground">如有下列情形，請依本點規定提出申請：</p>
+            <p className="text-sm text-muted-foreground">如有下列情形，請依本點規定透過<a href="mailto:nthusa@gapp.nthu.edu.tw?subject=【校內單位野台借用申請】(活動名稱)&body=【特殊申請類型】（可複選）（借用非開放時段／同時段借用多區／系統異常／其他特殊情形（請說明））%0A%0A【活動基本資訊】%0A活動名稱：%0A活動內容（簡述）：%0A借用單位類型：（學生團體／校內官方單位）%0A借用單位名稱：%0A%0A【場地借用資訊】%0A借用日期：%0A借用時段：%0A借用區域：（中間區／左區／右區／座位區）%0A需求說明：%0A%0A【活動／單位負責人資料】%0A單位職稱／系級：%0A姓名：%0A信箱：%0A聯絡電話：%0A%0A【備註】：" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">本連結</a>提出申請：</p>
             <ul className="list-disc pl-5 text-sm space-y-1">
-              <li>借用非開放時段</li>
+              <li>超出前述時段限制及需要借用非開放時段</li>
               <li>同時段借用多區</li>
               <li>系統無法使用或發生異常</li>
               <li>其他特殊情形</li>
@@ -289,7 +284,7 @@ export default function RulesPage() {
 
           <div className="space-y-2">
             <h4 className="font-semibold text-sm bg-secondary/50 p-2 rounded w-fit">【校外單位申請】（限企業及校外單位）</h4>
-            <p className="text-sm">校外單位不得透過本系統申請借用野台，如有需求，須透過電子郵件提出申請，經審核同意後辦理。</p>
+            <p className="text-sm">校外單位不得透過本系統申請借用野台，如有需求，須透過<a href="mailto:nthusa@gapp.nthu.edu.tw?subject=【校外單位野台借用申請】(活動名稱)&body=Ⅰ.%20申請單位基本資訊%0A單位名稱：%0A單位性質：企業／校外單位%0A負責人姓名及職稱／部門：%0A聯絡電話 / 信箱：%0A申請日期：%0A%0AⅡ.%20活動概況%0A活動名稱：%0A活動日期與時段：%0A借用區域：右間／中間區／左區／座位區%0A活動目標與宗旨：%0A活動流程與內容簡述：%0A預計參與人數：%0A%0AⅢ.%20企劃說明%0A活動主題與核心理念：%0A預期效益／成果：%0A對象群體及影響範圍：%0A活動特色或創新點：%0A與學生會或校內單位的合作說明：%0A如有合作協議，請附說明或附件：%0A%0AⅣ.%20資源與場地需求%0A場地設備需求（桌椅、擴音設備、插座、電力等）：%0A其他資源或支援需求：%0A特殊安全或管理需求（如保險、醫療、安保）：%0A%0AⅤ.%20宣傳與媒體計畫%0A活動宣傳方式：%0A預期曝光或受眾：%0A如需校園媒體或外部媒體協助，請說明：%0A%0AⅥ.%20風險管理與應變措施%0A安全措施：%0A防災或突發事件應變計畫：%0A活動結束後場地恢復計畫：%0A%0AⅦ.%20附錄／備註%0A附企劃書 PDF 或參考資料（如有）：%0A其他說明或補充：" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">本連結</a>提出申請，經審核同意後辦理。</p>
           </div>
 
           <div className="space-y-2">
