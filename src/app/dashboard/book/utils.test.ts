@@ -17,10 +17,9 @@ import type { Room } from '@/utils/supabase/queries'
 
 // Helper to create a future date offset from "today" by `daysAhead` days
 function futureDate(daysAhead: number, hours: number, minutes: number = 0): Date {
-  const d = new Date(2024, 5, 15) // June 15, 2024 (matches mocked "today")
-  d.setDate(d.getDate() + daysAhead)
-  d.setHours(hours, minutes, 0, 0)
-  return d
+  // 將測試時間明確鎖定對應到 UTC+8 台灣時間的絕對時間戳
+  // 例如台灣時間的 8:00，對應的是 UTC 的 0:00 (hours - 8)
+  return new Date(Date.UTC(2024, 5, 15 + daysAhead, hours - 8, minutes, 0, 0))
 }
 
 const mockRoom: Room = {
