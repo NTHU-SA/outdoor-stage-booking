@@ -180,4 +180,28 @@ describe('POST /api/bookings (batch)', () => {
     const body = await response.json()
     expect(body.createdCount).toBe(2)
   })
+
+  it('allows an admin booking from 07:30 to 08:00 on the same local day', async () => {
+    const { supabase, insertSpy } = createSupabaseMock({ overlaps: [], profileRole: 'admin' })
+    createClientMock.mockReturnValue(supabase)
+
+    const response = await POST(new Request('http://localhost/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        roomId: '550e8400-e29b-41d4-a716-446655440000',
+        borrowingUnit: '學生會活動部',
+        purpose: '清晨場地借用',
+        slots: [
+          {
+            startTime: '2099-03-30T23:30:00.000Z',
+            endTime: '2099-03-31T00:00:00.000Z',
+          },
+        ],
+      }),
+    }))
+
+    expect(response.status).toBe(200)
+    expect(insertSpy).toHaveBeenCalledTimes(1)
+  })
 })

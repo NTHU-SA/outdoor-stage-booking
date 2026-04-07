@@ -5,6 +5,7 @@ import {
   getMaxBookableMonths,
   isDateWithin4Months
 } from '@/utils/semester'
+import { getBookingLocalMinutes, isSameBookingLocalDay } from '@/utils/booking-time'
 
 const createBookingSchema = z.object({
   roomId: z.string().uuid(),
@@ -58,11 +59,8 @@ function overlapWithDayMinutes(rangeStart: Date, rangeEnd: Date, day: Date, star
 
   if (effectiveStart >= effectiveEnd) return false
 
-  const startHour = (effectiveStart.getUTCHours() + 8) % 24
-  const endHour = (effectiveEnd.getUTCHours() + 8) % 24
-
-  const requestStart = startHour * 60 + effectiveStart.getUTCMinutes()
-  const requestEnd = endHour * 60 + effectiveEnd.getUTCMinutes()
+  const requestStart = getBookingLocalMinutes(effectiveStart)
+  const requestEnd = getBookingLocalMinutes(effectiveEnd)
 
   return Math.max(requestStart, startMins) < Math.min(requestEnd, endMins)
 }
@@ -86,13 +84,8 @@ function validateSingleSlot(
   }
 
   if (!isAdmin) {
-    const startHour = (startTime.getUTCHours() + 8) % 24
-    const startMin = startTime.getUTCMinutes()
-    const endHour = (endTime.getUTCHours() + 8) % 24
-    const endMin = endTime.getUTCMinutes()
-
-    const startMins = startHour * 60 + startMin
-    const endMins = endHour * 60 + endMin
+    const startMins = getBookingLocalMinutes(startTime)
+    const endMins = getBookingLocalMinutes(endTime)
 
     const allowedStart = 8 * 60
     const allowedEnd = 22 * 60
@@ -145,18 +138,7 @@ function validateSingleSlot(
     }
   }
 
-  const startDay = new Date(startTime)
-  startDay.setHours(0, 0, 0, 0)
-  const endDay = new Date(endTime)
-  const effectiveEnd = new Date(endTime)
-  const endHour = (effectiveEnd.getUTCHours() + 8) % 24
-  if (endHour === 0 && effectiveEnd.getUTCMinutes() === 0 && effectiveEnd.getSeconds() === 0 && effectiveEnd > startTime) {
-    effectiveEnd.setDate(effectiveEnd.getDate() - 1)
-  }
-  endDay.setTime(effectiveEnd.getTime())
-  endDay.setHours(0, 0, 0, 0)
-
-  if (startDay.getTime() !== endDay.getTime()) {
+  if (!isSameBookingLocalDay(startTime, endTime)) {
     return '無法跨天借用'
   }
 

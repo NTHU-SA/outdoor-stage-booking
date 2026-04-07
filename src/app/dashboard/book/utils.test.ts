@@ -110,6 +110,13 @@ describe('validateBookingRules', () => {
     expect(result.isValid).toBe(true)
   })
 
+  it('should allow admin to book 07:30-08:00 on the same local day', () => {
+    const start = futureDate(3, 7, 30)
+    const end = futureDate(3, 8, 0)
+    const result = validateBookingRules(start, end, 'room-1', rooms, true)
+    expect(result.isValid).toBe(true)
+  })
+
   // === Duration rules ===
   it('should reject booking exceeding 4 hours for non-admin', () => {
     const start = futureDate(3, 8, 0)
