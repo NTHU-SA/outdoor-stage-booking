@@ -15,11 +15,15 @@ import {
 } from '@/app/dashboard/book/utils'
 import type { Room } from '@/utils/supabase/queries'
 
-// Helper to create a future date offset from "today" by `daysAhead` days
-function futureDate(daysAhead: number, hours: number, minutes: number = 0): Date {
+function bookingLocalDate(year: number, monthIndex: number, day: number, hours: number, minutes: number = 0): Date {
   // 將測試時間明確鎖定對應到 UTC+8 台灣時間的絕對時間戳
   // 例如台灣時間的 8:00，對應的是 UTC 的 0:00 (hours - 8)
-  return new Date(Date.UTC(2024, 5, 15 + daysAhead, hours - 8, minutes, 0, 0))
+  return new Date(Date.UTC(year, monthIndex, day, hours - 8, minutes, 0, 0))
+}
+
+// Helper to create a future date offset from "today" by `daysAhead` days
+function futureDate(daysAhead: number, hours: number, minutes: number = 0): Date {
+  return bookingLocalDate(2024, 5, 15 + daysAhead, hours, minutes)
 }
 
 const mockRoom: Room = {
@@ -58,7 +62,7 @@ describe('Constants', () => {
 describe('validateBookingRules', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date(2024, 5, 15, 10, 0)) // June 15, 2024, 10:00
+    vi.setSystemTime(bookingLocalDate(2024, 5, 15, 10, 0)) // June 15, 2024, 10:00 in booking local time
   })
 
   afterEach(() => {
@@ -142,8 +146,8 @@ describe('validateBookingRules', () => {
 
   // === Advance booking rules ===
   it('should reject booking for today (same day) for non-admin', () => {
-    const start = new Date(2024, 5, 15, 14, 0)
-    const end = new Date(2024, 5, 15, 16, 0)
+    const start = futureDate(0, 14, 0)
+    const end = futureDate(0, 16, 0)
     const result = validateBookingRules(start, end, 'room-1', rooms, false)
     expect(result.isValid).toBe(false)
     expect(result.message).toContain(`${MIN_ADVANCE_DAYS}`)
@@ -181,8 +185,8 @@ describe('validateBookingRules', () => {
     }
 
     // June 18, 2024 is a Tuesday
-    const start = new Date(2024, 5, 18, 10, 0) // 10:00 Tuesday
-    const end = new Date(2024, 5, 18, 11, 0)   // 11:00 Tuesday
+    const start = futureDate(3, 10, 0) // 10:00 Tuesday in booking local time
+    const end = futureDate(3, 11, 0)   // 11:00 Tuesday in booking local time
     const result = validateBookingRules(start, end, roomWithPeriods.id, [roomWithPeriods], false)
     expect(result.isValid).toBe(false)
     expect(result.message).toContain('不開放借用')
@@ -197,8 +201,8 @@ describe('validateBookingRules', () => {
     }
 
     // June 18, 2024 is a Tuesday, booking 13:00-15:00
-    const start = new Date(2024, 5, 18, 13, 0)
-    const end = new Date(2024, 5, 18, 15, 0)
+    const start = futureDate(3, 13, 0)
+    const end = futureDate(3, 15, 0)
     const result = validateBookingRules(start, end, roomWithPeriods.id, [roomWithPeriods], false)
     expect(result.isValid).toBe(true)
   })
@@ -211,8 +215,8 @@ describe('validateBookingRules', () => {
       ],
     }
 
-    const start = new Date(2024, 5, 18, 10, 0)
-    const end = new Date(2024, 5, 18, 11, 0)
+    const start = futureDate(3, 10, 0)
+    const end = futureDate(3, 11, 0)
     const result = validateBookingRules(start, end, roomWithPeriods.id, [roomWithPeriods], true)
     expect(result.isValid).toBe(true)
   })
