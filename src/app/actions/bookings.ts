@@ -1,7 +1,7 @@
 "use server"
 
 import { createClient } from '@/utils/supabase/server'
-import { TimetableEvent } from '@/utils/supabase/queries'
+import type { TimetableEvent } from '@/utils/supabase/queries'
 
 type BookingRow = {
   id: string

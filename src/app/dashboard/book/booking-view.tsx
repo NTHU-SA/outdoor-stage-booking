@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Room } from "@/utils/supabase/queries"
+import type { Room } from "@/utils/supabase/queries"
 import { BookingForm } from "./booking-form"
 import { RoomTimetable } from "./room-timetable"
 import { createClient } from "@/utils/supabase/client"

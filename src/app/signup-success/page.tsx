@@ -18,9 +18,10 @@ function SignupSuccessContent() {
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="/login_cover.jpg"
+            src="/login_cover.webp"
             alt="Background"
             fill
+            sizes="100vw"
             className="object-cover opacity-20"
             priority
           />
@@ -34,9 +35,10 @@ function SignupSuccessContent() {
           {/* Header Section with Image */}
           <div className="relative h-64 sm:h-80 overflow-hidden">
             <Image
-              src="/login_cover.jpg"
+              src="/login_cover.webp"
               alt="Success Background"
               fill
+              sizes="(max-width: 896px) 100vw, 896px"
               className="object-cover"
               priority
             />
@@ -169,4 +171,3 @@ export default function SignupSuccessPage() {
     </Suspense>
   )
 }
-

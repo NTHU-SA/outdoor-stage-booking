@@ -1,8 +1,8 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
-import { revalidatePath } from "next/cache"
-import { Room } from "@/utils/supabase/queries"
+import { revalidatePath, revalidateTag } from "next/cache"
+import type { Room } from "@/utils/supabase/queries"
 
 // Check if user is admin
 async function requireAdmin() {
@@ -38,6 +38,7 @@ export async function createRoom(data: Partial<Room>) {
     })
 
   if (error) throw new Error(error.message)
+  revalidateTag('rooms', 'max')
   revalidatePath('/dashboard/admin/rooms')
   revalidatePath('/dashboard/spaces')
   revalidatePath('/dashboard/book')
@@ -58,6 +59,7 @@ export async function updateRoom(id: string, data: Partial<Room>) {
     .eq('id', id)
 
   if (error) throw new Error(error.message)
+  revalidateTag('rooms', 'max')
   revalidatePath('/dashboard/admin/rooms')
   revalidatePath('/dashboard/spaces')
   revalidatePath('/dashboard/book')
@@ -73,6 +75,7 @@ export async function toggleRoomStatus(id: string, isActive: boolean) {
     .eq('id', id)
 
   if (error) throw new Error(error.message)
+  revalidateTag('rooms', 'max')
   revalidatePath('/dashboard/admin/rooms')
   revalidatePath('/dashboard/spaces')
   revalidatePath('/dashboard/book')
@@ -102,4 +105,3 @@ export async function uploadRoomImage(formData: FormData): Promise<string> {
 
   return publicUrl
 }
-

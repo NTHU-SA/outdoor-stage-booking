@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Room } from "@/utils/supabase/queries"
+import type { Room } from "@/utils/supabase/queries"
 import {
   Table,
   TableBody,
@@ -255,15 +255,15 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
 
 function AdminRoomImage({ src, alt }: { src: string | null, alt: string }) {
     const [error, setError] = useState(false)
-    const finalSrc = (src && !error) ? src : "/login_cover.jpg"
+    const finalSrc = (src && !error) ? src : "/login_cover.webp"
 
     return (
         <Image 
             src={finalSrc} 
             alt={alt}
             fill
+            sizes="96px"
             className="object-cover"
-            unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
         />
     )

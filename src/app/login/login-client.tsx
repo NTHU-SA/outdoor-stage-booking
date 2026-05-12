@@ -266,9 +266,10 @@ export default function LoginClient() {
       {/* Left/Top Side - Image */}
       <div className="relative w-full h-[30vh] lg:h-full bg-muted">
         <Image
-          src="/login_cover.jpg"
+          src="/login_cover.webp"
           alt="Login Visual"
           fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
           className="object-cover"
           priority
         />

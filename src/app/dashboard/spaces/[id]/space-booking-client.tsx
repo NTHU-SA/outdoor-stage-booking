@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Room } from "@/utils/supabase/queries"
+import type { Room } from "@/utils/supabase/queries"
 import { BookingWidget } from "./booking-widget"
 import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
 import { RoomDetailImage } from "./room-detail-image"

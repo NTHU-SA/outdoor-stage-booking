@@ -154,21 +154,21 @@ export default function RulesPage() {
             <h4 className="text-sm font-semibold mb-2">野台位置示意圖</h4>
             <button
               type="button"
-              onClick={() => setPreviewImage({ src: "/outstage-location-map.png", alt: "野台位置示意圖" })}
+              onClick={() => setPreviewImage({ src: "/outstage-location-map.webp", alt: "野台位置示意圖" })}
               className="relative block w-full md:max-w-lg mx-auto rounded-lg overflow-hidden border bg-transparent cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="點擊查看野台位置示意圖大圖"
             >
               <Image
-                src="/outstage-location-map.png"
+                src="/outstage-location-map.webp"
                 alt="野台位置示意圖"
-                width={1920}
-                height={1080}
+                width={1200}
+                height={1482}
                 className="w-full h-auto object-contain"
                 onError={(e) => {
                   // Hide broken image - will show placeholder
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
-                  target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">野台位置示意圖（待上傳 /public/outstage-location-map.png）</div>'
+                  target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-muted-foreground text-sm">野台位置示意圖（待上傳 /public/outstage-location-map.webp）</div>'
                 }}
               />
             </button>

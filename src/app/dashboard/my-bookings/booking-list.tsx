@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Booking, Room } from "@/utils/supabase/queries"
+import type { Booking, Room } from "@/utils/supabase/queries"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"

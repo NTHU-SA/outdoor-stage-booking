@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Room } from "@/utils/supabase/queries"
+import type { Room } from "@/utils/supabase/queries"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,

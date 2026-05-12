@@ -1,4 +1,4 @@
-import { Room } from "@/utils/supabase/queries"
+import type { Room } from "@/utils/supabase/queries"
 import { getMaxBookableMonths, isDateWithin4Months } from "@/utils/semester"
 import { getBookingLocalMinutes, isSameBookingLocalDay } from "@/utils/booking-time"
 

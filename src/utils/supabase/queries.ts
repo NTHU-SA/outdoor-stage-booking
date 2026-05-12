@@ -1,4 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { unstable_cache } from 'next/cache'
 
 export type Room = {
   id: string
@@ -14,17 +16,82 @@ export type Room = {
   color: string | null
 }
 
+let publicSupabase: ReturnType<typeof createSupabaseClient> | null = null
+
+function getPublicSupabase() {
+  if (!publicSupabase) {
+    publicSupabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    )
+  }
+
+  return publicSupabase
+}
+
+const roomSelect = 'id, name, description, unavailable_periods, image_url, is_active, color'
+
+const getCachedActiveRooms = unstable_cache(
+  async () => {
+    const { data, error } = await getPublicSupabase()
+      .from('rooms')
+      .select(roomSelect)
+      .eq('is_active', true)
+      .order('name')
+
+    if (error) {
+      console.error('Error fetching rooms:', error)
+      return []
+    }
+
+    return data as Room[]
+  },
+  ['active-rooms'],
+  {
+    revalidate: 300,
+    tags: ['rooms'],
+  }
+)
+
+const getCachedRoomById = unstable_cache(
+  async (id: string) => {
+    const { data, error } = await getPublicSupabase()
+      .from('rooms')
+      .select(roomSelect)
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching room:', error)
+      return null
+    }
+
+    return data as Room
+  },
+  ['room-by-id'],
+  {
+    revalidate: 300,
+    tags: ['rooms'],
+  }
+)
+
  
 export async function getRooms(includeInactive = false): Promise<Room[]> {
-  const supabase = await createClient()
-  let query = supabase
-    .from('rooms')
-    .select('*')
-    .order('name')
-  
   if (!includeInactive) {
-    query = query.eq('is_active', true)
+    return getCachedActiveRooms()
   }
+
+  const supabase = await createClient()
+  const query = supabase
+    .from('rooms')
+    .select(roomSelect)
+    .order('name')
   
   const { data, error } = await query
   
@@ -37,19 +104,7 @@ export async function getRooms(includeInactive = false): Promise<Room[]> {
 }
 
 export async function getRoomById(id: string): Promise<Room | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('rooms')
-    .select('*')
-    .eq('id', id)
-    .single()
-  
-  if (error) {
-    console.error('Error fetching room:', error)
-    return null
-  }
-  
-  return data as Room
+  return getCachedRoomById(id)
 }
 
 export type Booking = {

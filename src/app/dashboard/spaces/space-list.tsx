@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Room } from "@/utils/supabase/queries"
+import type { Room } from "@/utils/supabase/queries"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
@@ -50,15 +50,15 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
 // Helper component to handle image fallback
 function RoomImage({ src, alt }: { src: string | null, alt: string }) {
     const [error, setError] = useState(false)
-    const finalSrc = (src && !error) ? src : "/login_cover.jpg"
+    const finalSrc = (src && !error) ? src : "/login_cover.webp"
     
     return (
         <Image
             src={finalSrc}
             alt={alt}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 560px"
             className="object-contain transition-transform group-hover:scale-105"
-            unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
         />
     )

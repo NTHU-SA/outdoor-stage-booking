@@ -1,8 +1,5 @@
-import { createClient } from "@/utils/supabase/server"
 import LoginClient from "./login-client"
 
-export default async function LoginPage() {
-  const supabase = await createClient()
-
+export default function LoginPage() {
   return <LoginClient />
 }
