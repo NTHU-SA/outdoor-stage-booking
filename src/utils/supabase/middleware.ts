@@ -8,6 +8,7 @@ const publicPaths = [
   '/signup-success',
   '/approval-pending',
   '/dashboard/rules',
+  '/dashboard/settings',
 ]
 
 export async function updateSession(request: NextRequest) {
