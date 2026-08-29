@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const { sendDiscordBookingNotificationMock } = vi.hoisted(() => ({
+  sendDiscordBookingNotificationMock: vi.fn(),
+}))
+
 vi.mock('@/utils/semester', () => ({
   getMaxBookableMonths: () => 4,
   isDateWithin4Months: () => true,
@@ -11,11 +15,16 @@ vi.mock('@/utils/supabase/server', () => ({
   createClient: () => createClientMock(),
 }))
 
+vi.mock('@/lib/discord-booking-notification', () => ({
+  sendDiscordBookingNotification: sendDiscordBookingNotificationMock,
+}))
+
 import { POST } from '@/app/api/bookings/route'
 
 type SupabaseMockOptions = {
   overlaps?: Array<{ id: string; start_time: string; end_time: string }>
   profileRole?: 'admin' | 'user'
+  createError?: Error
 }
 
 function createSupabaseMock(options: SupabaseMockOptions = {}) {
@@ -24,8 +33,8 @@ function createSupabaseMock(options: SupabaseMockOptions = {}) {
 
   const insertSpy = vi.fn((rows: Array<Record<string, unknown>>) => ({
     select: vi.fn().mockResolvedValue({
-      data: rows.map((row, index) => ({ id: `booking-${index + 1}`, ...row })),
-      error: null,
+      data: options.createError ? null : rows.map((row, index) => ({ id: `booking-${index + 1}`, ...row })),
+      error: options.createError ?? null,
     }),
   }))
 
@@ -53,14 +62,21 @@ function createSupabaseMock(options: SupabaseMockOptions = {}) {
 
   const supabase = {
     auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1', email: 'user@example.com' } } }),
     },
     from: vi.fn((table: string) => {
       if (table === 'profiles') {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({ data: { role: profileRole }, error: null }),
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  role: profileRole,
+                  full_name: '測試使用者',
+                  username: 'test-user',
+                },
+                error: null,
+              }),
             })),
           })),
         }
@@ -71,7 +87,12 @@ function createSupabaseMock(options: SupabaseMockOptions = {}) {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               maybeSingle: vi.fn().mockResolvedValue({
-                data: { unavailable_periods: null, is_active: true },
+                data: {
+                  unavailable_periods: null,
+                  is_active: true,
+                  name: '野台',
+                  room_code: 'OUTDOOR',
+                },
                 error: null,
               }),
             })),
@@ -98,6 +119,7 @@ function createSupabaseMock(options: SupabaseMockOptions = {}) {
 describe('POST /api/bookings (batch)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sendDiscordBookingNotificationMock.mockResolvedValue(undefined)
   })
 
   const payload = {
@@ -137,6 +159,7 @@ describe('POST /api/bookings (batch)', () => {
     expect(response.status).toBe(409)
     const body = await response.json()
     expect(body.error).toContain('已被預約')
+    expect(sendDiscordBookingNotificationMock).not.toHaveBeenCalled()
   })
 
   it('does not insert any rows when conflict exists (all-or-nothing)', async () => {
@@ -159,9 +182,10 @@ describe('POST /api/bookings (batch)', () => {
 
     expect(response.status).toBe(409)
     expect(insertSpy).not.toHaveBeenCalled()
+    expect(sendDiscordBookingNotificationMock).not.toHaveBeenCalled()
   })
 
-  it('inserts all slots when there is no conflict', async () => {
+  it('sends one Discord notification for a successful batch booking', async () => {
     const { supabase, insertSpy } = createSupabaseMock({ overlaps: [] })
     createClientMock.mockReturnValue(supabase)
 
@@ -179,6 +203,92 @@ describe('POST /api/bookings (batch)', () => {
 
     const body = await response.json()
     expect(body.createdCount).toBe(2)
+    expect(sendDiscordBookingNotificationMock).toHaveBeenCalledTimes(1)
+    expect(sendDiscordBookingNotificationMock).toHaveBeenCalledWith({
+      bookings: expect.arrayContaining([
+        expect.objectContaining({ id: 'booking-1', status: 'approved' }),
+        expect.objectContaining({ id: 'booking-2', status: 'approved' }),
+      ]),
+      room: {
+        name: '野台',
+        room_code: 'OUTDOOR',
+      },
+      applicant: {
+        full_name: '測試使用者',
+        username: 'test-user',
+        email: 'user@example.com',
+      },
+    })
+  })
+
+  it('sends one Discord notification for a successful single booking', async () => {
+    const { supabase } = createSupabaseMock({ overlaps: [], profileRole: 'user' })
+    createClientMock.mockReturnValue(supabase)
+    const startTime = new Date()
+    startTime.setDate(startTime.getDate() + 2)
+    startTime.setUTCHours(2, 0, 0, 0)
+    const endTime = new Date(startTime)
+    endTime.setUTCHours(3, 0, 0, 0)
+
+    const response = await POST(new Request('http://localhost/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        roomId: '550e8400-e29b-41d4-a716-446655440000',
+        borrowingUnit: '學生會活動部',
+        purpose: '展覽活動借用',
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+      }),
+    }))
+
+    expect(response.status).toBe(200)
+    expect(sendDiscordBookingNotificationMock).toHaveBeenCalledTimes(1)
+    expect(sendDiscordBookingNotificationMock).toHaveBeenCalledWith(expect.objectContaining({
+      bookings: [
+        expect.objectContaining({
+          id: 'booking-1',
+          status: 'pending',
+        }),
+      ],
+    }))
+  })
+
+  it('does not notify when insert fails', async () => {
+    const { supabase } = createSupabaseMock({
+      overlaps: [],
+      createError: new Error('insert failed'),
+    })
+    createClientMock.mockReturnValue(supabase)
+
+    const response = await POST(new Request('http://localhost/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }))
+
+    expect(response.status).toBe(500)
+    expect(sendDiscordBookingNotificationMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps the booking response successful when notification fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    sendDiscordBookingNotificationMock.mockRejectedValueOnce(new Error('Discord failed'))
+    const { supabase } = createSupabaseMock({ overlaps: [] })
+    createClientMock.mockReturnValue(supabase)
+
+    const response = await POST(new Request('http://localhost/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }))
+
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.createdCount).toBe(2)
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to send booking notification:', expect.any(Error))
+
+    consoleErrorSpy.mockRestore()
   })
 
   it('allows an admin booking from 07:30 to 08:00 on the same local day', async () => {

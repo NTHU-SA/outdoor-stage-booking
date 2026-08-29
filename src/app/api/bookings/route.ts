@@ -6,6 +6,10 @@ import {
   isDateWithin4Months
 } from '@/utils/semester'
 import { getBookingLocalMinutes, isSameBookingLocalDay } from '@/utils/booking-time'
+import {
+  sendDiscordBookingNotification,
+  type DiscordBookingNotificationBooking,
+} from '@/lib/discord-booking-notification'
 
 const createBookingSchema = z.object({
   roomId: z.string().uuid(),
@@ -200,7 +204,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '無效的資料格式' }, { status: 400 })
     }
 
-    const isBatchRequest = batchParsed.success
     let roomId: string
     let borrowingUnit: string
     let purpose: string
@@ -235,7 +238,7 @@ export async function POST(request: Request) {
     // Fetch user profile for role check
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, full_name, username')
       .eq('id', user.id)
       .single()
     
@@ -244,7 +247,7 @@ export async function POST(request: Request) {
     // Fetch room info
     const { data: room, error: roomError } = await supabase
       .from('rooms')
-      .select('unavailable_periods, is_active')
+      .select('unavailable_periods, is_active, name, room_code')
       .eq('id', roomId)
       .maybeSingle()
 
@@ -342,6 +345,23 @@ export async function POST(request: Request) {
 
     if (!bookings || bookings.length === 0) {
       return NextResponse.json({ error: '建立預約失敗' }, { status: 500 })
+    }
+
+    try {
+      await sendDiscordBookingNotification({
+        bookings: bookings as DiscordBookingNotificationBooking[],
+        room: {
+          name: room.name ?? null,
+          room_code: room.room_code ?? null,
+        },
+        applicant: {
+          full_name: profile?.full_name ?? null,
+          username: profile?.username ?? null,
+          email: user.email ?? null,
+        },
+      })
+    } catch (notificationError) {
+      console.error('Failed to send booking notification:', notificationError)
     }
 
     if (bookings.length === 1) {
