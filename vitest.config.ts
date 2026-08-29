@@ -23,12 +23,8 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.{ts,tsx}',
         'src/__tests__/**',
-        'src/utils/supabase/client.ts',
-        'src/utils/supabase/server.ts',
-        'src/utils/supabase/service.ts',
-        'src/utils/supabase/middleware.ts',
-        'src/utils/supabase/admin-queries.ts',
-        'src/utils/supabase/admin-users-helper.ts',
+        'src/utils/supabase/**',
+        'src/middleware.ts',
         'src/proxy.ts',
       ],
       thresholds: {
