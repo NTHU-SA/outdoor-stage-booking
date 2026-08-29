@@ -7,7 +7,6 @@ const publicPaths = [
   '/reset-password',
   '/signup-success',
   '/approval-pending',
-  '/dashboard/spaces',
   '/dashboard/rules',
 ]
 
@@ -55,7 +54,7 @@ export async function updateSession(request: NextRequest) {
 
   // If user is not logged in and trying to access a protected route
   if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/dashboard/rules', request.url))
   }
 
   return supabaseResponse
