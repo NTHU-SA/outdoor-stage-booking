@@ -14,5 +14,11 @@
   "observability": {
     "enabled": true
   },
-  "minify": true
+  "minify": true,
+  "routes": [
+    {
+      "pattern": "outdoor-stage.booking.nthusa.tw",
+      "custom_domain": true
+    }
+  ]
 }
