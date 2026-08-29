@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:turbo": "next dev",
-    "build": "next build",
+    "build": "opennextjs-cloudflare build",
+    "build:next": "next build",
     "build:worker": "opennextjs-cloudflare build",
     "deploy:worker": "opennextjs-cloudflare build && wrangler deploy",
     "preview:worker": "opennextjs-cloudflare build && wrangler dev",
