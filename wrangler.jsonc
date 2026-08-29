@@ -15,6 +15,11 @@
     "enabled": true
   },
   "minify": true,
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://sfbcdvdddxymockzdzdh.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmNkdmRkZHh5bW9ja3pkemRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NjEzMzAsImV4cCI6MjA4NzQzNzMzMH0.j5Q8ngULpzaTLxrmGbTpnhhpUJNnwdSerrENZqMgD7Y",
+    "NEXT_PUBLIC_APP_URL": "https://outdoor-stage.booking.nthusa.tw"
+  },
   "routes": [
     {
       "pattern": "outdoor-stage.booking.nthusa.tw",

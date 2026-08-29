@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppFooter } from "@/components/app-footer";
 import { AppPreferencesProvider } from "@/components/app-preferences-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -58,8 +56,6 @@ export default function RootLayout({
           </div>
           <AppFooter />
           <Toaster richColors />
-          <Analytics />
-          <SpeedInsights />
         </AppPreferencesProvider>
       </body>
     </html>

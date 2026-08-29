@@ -3,6 +3,8 @@ import { getRooms } from "@/utils/supabase/queries"
 import { SpaceList } from "./space-list"
 import { Skeleton } from "@/components/ui/skeleton"
 
+export const dynamic = 'force-dynamic'
+
 function SpaceGridSkeleton() {
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2">
