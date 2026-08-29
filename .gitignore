@@ -42,4 +42,8 @@ next-env.d.ts
 
 .cursor
 
+# cloudflare / opennext
+.open-next
+.wrangler
+
 supabase
