@@ -137,7 +137,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {items
                 .filter(item => {
-                  if (item.url === "/dashboard/my-bookings" && !user) return false;
+                  if (!user && (item.url === "/dashboard/my-bookings" || item.url === "/dashboard/calendar" || item.url === "/dashboard/spaces")) return false;
                   return true;
                 })
                 .map((item) => (

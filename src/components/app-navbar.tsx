@@ -93,13 +93,13 @@ export function AppNavbar() {
       label: t("nav.calendar"),
       url: "/dashboard/calendar",
       icon: CalendarDays,
-      requiresAuth: false,
+      requiresAuth: true,
     },
     {
       label: t("nav.spaces"),
       url: "/dashboard/spaces",
       icon: Home,
-      requiresAuth: false,
+      requiresAuth: true,
     },
     {
       label: t("nav.myBookings"),
