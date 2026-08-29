@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
   "name": "outdoor-stage-booking",
+  "account_id": "7da18cf3c4828d0587d1c61d7dbd42ce",
   "compatibility_date": "2026-08-01",
   "compatibility_flags": [
     "nodejs_compat"

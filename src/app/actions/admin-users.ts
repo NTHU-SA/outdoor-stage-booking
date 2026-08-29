@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/server"
 import { Resend } from 'resend'
 import { revalidatePath } from "next/cache"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder')
 
 export type AdminUser = {
   id: string
