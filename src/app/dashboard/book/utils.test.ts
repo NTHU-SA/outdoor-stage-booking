@@ -33,6 +33,7 @@ const mockRoom: Room = {
   unavailable_periods: null,
   image_url: null,
   is_active: true,
+  color: null,
 }
 
 const rooms: Room[] = [mockRoom]
