@@ -18,16 +18,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { Loader2, Eye, EyeOff, BookOpen, ArrowLeft } from "lucide-react"
 import { checkUserExists } from "@/app/actions/auth"
 
-type Department = {
-  id: number
-  name: string
-}
-
 export default function LoginClient() {
-    const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   // Auth View State
@@ -59,18 +54,18 @@ export default function LoginClient() {
   // Ref to prevent onAuthStateChange from redirecting during signup
   const isSigningUpRef = useRef(false)
 
-    const getAppOrigin = () => {
-        if (typeof window !== 'undefined' && window.location.origin) {
-            return window.location.origin
-        }
-        return process.env.NEXT_PUBLIC_APP_URL || ''
+  const getAppOrigin = () => {
+    if (typeof window !== 'undefined' && window.location.origin) {
+      return window.location.origin
     }
+    return process.env.NEXT_PUBLIC_APP_URL || ''
+  }
 
   useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
       if (event === 'SIGNED_IN' && !isSigningUpRef.current) {
         const params = new URLSearchParams(window.location.search)
-        const next = params.get('next') || '/dashboard'
+        const next = params.get('next') || '/dashboard/spaces'
         router.push(next)
       }
     })
@@ -93,49 +88,45 @@ export default function LoginClient() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (cooldown > 0) return
     if (!resetEmail) {
-        toast.error("請輸入電子郵件")
-        return
+      toast.error("請輸入電子郵件")
+      return
     }
 
     setIsResetting(true)
     try {
-        const redirectTo = `${getAppOrigin()}/auth/callback?next=${encodeURIComponent('/reset-password')}`
-        const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-            redirectTo,
-        })
+      const redirectTo = `${getAppOrigin()}/auth/callback?next=${encodeURIComponent('/reset-password')}`
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo,
+      })
 
-        if (error) throw error
+      if (error) throw error
 
-        toast.success("重設密碼信件已發送，請檢查您的信箱")
-        setCooldown(60)
-        setIsDialogOpen(false)
+      toast.success("重設密碼信件已發送，請檢查您的信箱")
+      setCooldown(60)
+      setIsDialogOpen(false)
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "發送失敗，請稍後再試"
-        toast.error(message)
+      const message = error instanceof Error ? error.message : "發送失敗，請稍後再試"
+      toast.error(message)
     } finally {
-        setIsResetting(false)
+      setIsResetting(false)
     }
   }
 
   // 動態計算重定向 URL
   const getRedirectUrl = () => {
-        const appOrigin = getAppOrigin()
-        if (!appOrigin) return ''
+    const appOrigin = getAppOrigin()
+    if (!appOrigin) return ''
     const params = new URLSearchParams(window.location.search)
-    const next = params.get('next') || '/dashboard'
-        return `${appOrigin}/auth/callback?next=${encodeURIComponent(next)}`
+    const next = params.get('next') || '/dashboard/spaces'
+    return `${appOrigin}/auth/callback?next=${encodeURIComponent(next)}`
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSigningIn(true)
-
-    // Parse next param from current URL if it exists
-    const params = new URLSearchParams(window.location.search)
-    const next = params.get('next') || '/dashboard'
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -144,39 +135,34 @@ export default function LoginClient() {
       })
 
       if (error) {
-        // ... error handling ...
         const errorMessage = error.message.toLowerCase()
-        // ... (keep existing error handling logic) ...
-        if (errorMessage.includes("invalid login credentials") || 
-            errorMessage.includes("invalid_credentials")) {
-          // 嘗試檢查帳號是否存在
+        if (errorMessage.includes("invalid login credentials") ||
+          errorMessage.includes("invalid_credentials")) {
           const userExists = await checkUserExists(signInEmail)
-          
+
           if (!userExists) {
             toast.error("此帳號不存在，請確認電子郵件地址是否正確")
           } else {
             toast.error("密碼錯誤，請重新輸入")
           }
-        } else if (errorMessage.includes("email not confirmed") || 
-                   errorMessage.includes("email_not_confirmed")) {
+        } else if (errorMessage.includes("email not confirmed") ||
+          errorMessage.includes("email_not_confirmed")) {
           toast.error("您的電子郵件尚未驗證，請檢查您的信箱並點擊驗證連結")
-        } else if (errorMessage.includes("too many requests") || 
-                   errorMessage.includes("rate limit")) {
+        } else if (errorMessage.includes("too many requests") ||
+          errorMessage.includes("rate limit")) {
           toast.error("登入嘗試次數過多，請稍後再試")
         } else if (errorMessage.includes("user not found")) {
           toast.error("此帳號不存在，請確認電子郵件地址是否正確")
         } else {
-          // 其他錯誤，顯示原始錯誤訊息或預設訊息
           toast.error(error.message || "登入失敗，請稍後再試")
         }
         return
       }
-      
+
       toast.success("登入成功")
-      // Explicitly redirect using router to handle the next param properly
-      // Although onAuthStateChange handles it, explicit redirect is safer for preventing race conditions
-      // But we need to match the behavior of onAuthStateChange in useEffect
-      // Let's rely on onAuthStateChange which we will update
+      const params = new URLSearchParams(window.location.search)
+      const next = params.get('next') || '/dashboard/spaces'
+      router.push(next)
     } catch (error: unknown) {
       toast.error("發生未預期的錯誤，請稍後再試")
       console.error(error)
@@ -186,79 +172,75 @@ export default function LoginClient() {
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
-      e.preventDefault()
-      
-      // 驗證必填欄位
-      if (!signUpFullName.trim()) {
-          toast.error("請輸入姓名")
-          return
-      }
-      
-      if (!signUpPhone.trim()) {
-          toast.error("請輸入聯絡電話")
-          return
+    e.preventDefault()
+
+    if (!signUpFullName.trim()) {
+      toast.error("請輸入姓名")
+      return
+    }
+
+    if (!signUpPhone.trim()) {
+      toast.error("請輸入聯絡電話")
+      return
+    }
+
+    if (!signUpUserType) {
+      toast.error("請選擇身份別")
+      return
+    }
+
+    if (signUpPassword !== confirmPassword) {
+      toast.error("兩次輸入的密碼不一致")
+      return
+    }
+
+    setIsSigningUp(true)
+    isSigningUpRef.current = true
+
+    try {
+      let finalUserType = signUpUserType
+      const emailDomain = signUpEmail.split('@')[1]?.toLowerCase()
+      if (finalUserType !== 'external' && emailDomain !== 'nthu.edu.tw' && !(emailDomain?.endsWith('.nthu.edu.tw'))) {
+        finalUserType = 'external'
+        toast.info('您的信箱非 nthu.edu.tw，身份別已自動設為校外人士')
       }
 
-      if (!signUpUserType) {
-          toast.error("請選擇身份別")
-          return
-      }
-
-      if (signUpPassword !== confirmPassword) {
-          toast.error("兩次輸入的密碼不一致")
-          return
-      }
-
-      setIsSigningUp(true)
-      isSigningUpRef.current = true
-
-      try {
-          // 檢查信箱域名：若非 nthu.edu.tw 或 *.nthu.edu.tw 信箱，自動將身份別設為校外人士
-          let finalUserType = signUpUserType
-          const emailDomain = signUpEmail.split('@')[1]?.toLowerCase()
-          if (finalUserType !== 'external' && emailDomain !== 'nthu.edu.tw' && !(emailDomain?.endsWith('.nthu.edu.tw'))) {
-              finalUserType = 'external'
-              toast.info('您的信箱非 nthu.edu.tw，身份別已自動設為校外人士')
+      const { data, error } = await supabase.auth.signUp({
+        email: signUpEmail,
+        password: signUpPassword,
+        options: {
+          emailRedirectTo: getRedirectUrl(),
+          data: {
+            full_name: signUpFullName,
+            phone: signUpPhone,
+            user_type: finalUserType,
           }
+        }
+      })
 
-          const { data, error } = await supabase.auth.signUp({
-              email: signUpEmail,
-              password: signUpPassword,
-              options: {
-                  emailRedirectTo: getRedirectUrl(),
-                  data: {
-                      full_name: signUpFullName,
-                      phone: signUpPhone,
-                      user_type: finalUserType,
-                  }
-              }
-          })
+      if (error) {
+        const msg = error.message || "註冊失敗，請稍後再試"
 
-                    if (error) {
-                        const msg = error.message || "註冊失敗，請稍後再試"
-
-                        if (msg.toLowerCase().includes('database error saving new user')) {
-                            toast.error('註冊失敗：資料庫觸發器設定異常，請聯絡管理員執行最新 Supabase migration')
-                        } else {
-                            toast.error(msg)
-                        }
-            return
-          }
-          if (data?.user && data.user.identities && data.user.identities.length === 0) {
-            toast.error("此 Email 已經註冊過，請直接登入")
-            return
-          }
-
-          // 跳轉到註冊成功頁面
-          router.push(`/signup-success?email=${encodeURIComponent(signUpEmail)}`)
-          
-      } catch (error: unknown) {
-          toast.error("發生未預期的錯誤")
-          console.error(error)
-      } finally {
-          setIsSigningUp(false)
-          isSigningUpRef.current = false
+        if (msg.toLowerCase().includes('database error saving new user')) {
+          toast.error('註冊失敗：資料庫觸發器設定異常，請聯絡管理員執行最新 Supabase migration')
+        } else {
+          toast.error(msg)
+        }
+        return
       }
+      if (data?.user && data.user.identities && data.user.identities.length === 0) {
+        toast.error("此 Email 已經註冊過，請直接登入")
+        return
+      }
+
+      router.push(`/signup-success?email=${encodeURIComponent(signUpEmail)}`)
+    } catch (error: unknown) {
+      toast.error("發生未預期的錯誤")
+      console.error(error)
+    } finally {
+      setIsSigningUp(false)
+      isSigningUpRef.current = false
+    }
   }
 
   return (
@@ -273,266 +255,266 @@ export default function LoginClient() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-black/10" /> {/* Subtle overlay */}
+        <div className="absolute inset-0 bg-black/10" />
         <div className="absolute bottom-6 left-6 lg:bottom-10 lg:left-10 z-20 text-white p-4">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-1 lg:mb-2">國立清華大學學生會</h2>
-            <p className="text-base lg:text-lg opacity-90">野台借用系統</p>
+          <h2 className="text-2xl lg:text-3xl font-bold mb-1 lg:mb-2">國立清華大學學生會</h2>
+          <p className="text-base lg:text-lg opacity-90">野台借用系統</p>
         </div>
       </div>
 
       {/* Right/Bottom Side - Form */}
       <div className="flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-background lg:py-12 relative">
-        <Button 
-            variant="ghost" 
-            className="absolute top-4 right-4 lg:top-8 lg:right-8"
-            onClick={() => router.push('/')}
+        <Button
+          variant="ghost"
+          className="absolute top-4 right-4 lg:top-8 lg:right-8 text-muted-foreground hover:text-foreground"
+          onClick={() => router.push('/dashboard/rules')}
         >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            回到首頁
+          <BookOpen className="mr-2 h-4 w-4 text-primary" />
+          返回借用須知
         </Button>
         <div className="mx-auto grid w-full max-w-[400px] gap-6">
           <div className="flex flex-col items-center text-center space-y-2">
             <div className="relative w-16 h-16 mb-2">
-                 <Image 
-                    src="/logo.png" 
-                    alt="Logo" 
-                    fill
-                          sizes="64px"
-                    className="object-contain"
-                 />
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                fill
+                sizes="64px"
+                className="object-contain"
+              />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-1">
+              步驟 2 / 3：登入帳號
             </div>
             <h1 className="text-3xl font-bold tracking-tight">
-                {authView === 'sign_in' ? '歡迎回來' : '建立帳號'}
+              {authView === 'sign_in' ? '歡迎回來' : '建立帳號'}
             </h1>
             <p className="text-sm text-muted-foreground">
-                {authView === 'sign_in' 
-                    ? '請輸入您的帳號密碼以登入系統' 
-                    : '填寫以下資訊以註冊新帳號'
-                }
+              {authView === 'sign_in'
+                ? '請登入以繼續前往空間頁面選取時間與預約'
+                : '填寫以下資訊以註冊新帳號'
+              }
             </p>
           </div>
 
           <div className="grid gap-6">
             {authView === 'sign_in' ? (
-                <form onSubmit={handleSignIn} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="signin-email">電子郵件</Label>
-                        <Input 
-                            id="signin-email"
-                            type="email"
-                            placeholder="您的信箱"
-                            value={signInEmail}
-                            onChange={(e) => setSignInEmail(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="signin-password">密碼</Label>
-                        <div className="relative">
-                            <Input 
-                                id="signin-password"
-                                type={showSignInPassword ? "text" : "password"}
-                                placeholder="您的密碼"
-                                value={signInPassword}
-                                onChange={(e) => setSignInPassword(e.target.value)}
-                                required
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowSignInPassword(!showSignInPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                            >
-                                {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                        </div>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isSigningIn}>
-                        {isSigningIn ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                登入中...
-                            </>
-                        ) : (
-                            "登入"
-                        )}
-                    </Button>
-                </form>
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">電子郵件</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    placeholder="您的信箱"
+                    value={signInEmail}
+                    onChange={(e) => setSignInEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signin-password">密碼</Label>
+                  <div className="relative">
+                    <Input
+                      id="signin-password"
+                      type={showSignInPassword ? "text" : "password"}
+                      placeholder="您的密碼"
+                      value={signInPassword}
+                      onChange={(e) => setSignInPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignInPassword(!showSignInPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                      {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isSigningIn}>
+                  {isSigningIn ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      登入中...
+                    </>
+                  ) : (
+                    "登入並前往預約"
+                  )}
+                </Button>
+              </form>
             ) : (
-                <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="signup-email">電子郵件 <span className="text-red-500">*</span></Label>
-                        <Input 
-                            id="signup-email"
-                            type="email"
-                            placeholder="您的信箱"
-                            value={signUpEmail}
-                            onChange={(e) => setSignUpEmail(e.target.value)}
-                            required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            校內人士請使用 @gapp.nthu.edu.tw 或其他 @nthu.edu.tw 結尾之信箱註冊
-                        </p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="signup-full-name">姓名 <span className="text-red-500">*</span></Label>
-                        <Input 
-                            id="signup-full-name"
-                            type="text"
-                            placeholder="請輸入您的姓名"
-                            value={signUpFullName}
-                            onChange={(e) => setSignUpFullName(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="signup-phone">聯絡電話 <span className="text-red-500">*</span></Label>
-                        <Input 
-                            id="signup-phone"
-                            type="tel"
-                            placeholder="您的電話"
-                            value={signUpPhone}
-                            onChange={(e) => setSignUpPhone(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="signup-user-type">身份別 <span className="text-red-500">*</span></Label>
-                        <Select value={signUpUserType} onValueChange={(value: "teacher" | "staff" | "external" | "student") => setSignUpUserType(value)}>
-                            <SelectTrigger id="signup-user-type">
-                                <SelectValue placeholder="請選擇身份別" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="teacher">教師</SelectItem>
-                                <SelectItem value="staff">職員</SelectItem>
-                                <SelectItem value="external">校外人士</SelectItem>
-                                <SelectItem value="student">學生</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="signup-password">密碼 <span className="text-red-500">*</span></Label>
-                        <div className="relative">
-                            <Input 
-                                id="signup-password"
-                                type={showSignUpPassword ? "text" : "password"}
-                                placeholder="您的密碼"
-                                value={signUpPassword}
-                                onChange={(e) => setSignUpPassword(e.target.value)}
-                                required
-                                minLength={6}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowSignUpPassword(!showSignUpPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                            >
-                                {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="confirm-password">確認密碼 <span className="text-red-500">*</span></Label>
-                        <div className="relative">
-                            <Input 
-                                id="confirm-password"
-                                type={showConfirmPassword ? "text" : "password"}
-                                placeholder="請再次輸入密碼"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                                minLength={6}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                            >
-                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                        </div>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isSigningUp}>
-                        {isSigningUp ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                註冊中...
-                            </>
-                        ) : (
-                            "註冊"
-                        )}
-                    </Button>
-                </form>
-            )}
-        
-            <div className="flex flex-col gap-4 text-center text-sm">
-            {/* Custom Forgot Password Link - Only show in sign_in view */}
-            {authView === 'sign_in' && (
-                    <div className="flex justify-end px-1">
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                                <button className="text-sm font-medium text-muted-foreground hover:text-primary underline underline-offset-4">
-                            忘記密碼？
-                        </button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>重設密碼</DialogTitle>
-                            <DialogDescription>
-                                請輸入您的電子郵件，我們將發送重設密碼連結給您。
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleResetPassword} className="space-y-4 mt-2">
-                                    <div className="space-y-2 text-left">
-                                <Label htmlFor="reset-email">電子郵件</Label>
-                                <Input 
-                                    id="reset-email" 
-                                    type="email" 
-                                    placeholder="您的信箱" 
-                                    value={resetEmail}
-                                    onChange={(e) => setResetEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <Button type="submit" className="w-full" disabled={isResetting || cooldown > 0}>
-                                {isResetting ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        發送中...
-                                    </>
-                                ) : cooldown > 0 ? (
-                                    `請稍候 ${cooldown} 秒`
-                                ) : (
-                                    "發送重設信件"
-                                )}
-                            </Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-                    </div>
-            )}
-
-                <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                            或
-                        </span>
-                    </div>
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">電子郵件 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="您的信箱 (例如: s112xxxx@m112.nthu.edu.tw)"
+                    value={signUpEmail}
+                    onChange={(e) => setSignUpEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">姓名 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="您的真實姓名"
+                    value={signUpFullName}
+                    onChange={(e) => setSignUpFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone">聯絡電話 <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="您的電話"
+                    value={signUpPhone}
+                    onChange={(e) => setSignUpPhone(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-user-type">身份別 <span className="text-red-500">*</span></Label>
+                  <Select value={signUpUserType} onValueChange={(value: "teacher" | "staff" | "external" | "student") => setSignUpUserType(value)}>
+                    <SelectTrigger id="signup-user-type">
+                      <SelectValue placeholder="請選擇身份別" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="teacher">教師</SelectItem>
+                      <SelectItem value="staff">職員</SelectItem>
+                      <SelectItem value="external">校外人士</SelectItem>
+                      <SelectItem value="student">學生</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-            {/* Custom Sign In / Sign Up Toggle */}
-            <button 
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">密碼 <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      type={showSignUpPassword ? "text" : "password"}
+                      placeholder="您的密碼"
+                      value={signUpPassword}
+                      onChange={(e) => setSignUpPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                      {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">確認密碼 <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="請再次輸入密碼"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isSigningUp}>
+                  {isSigningUp ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      註冊中...
+                    </>
+                  ) : (
+                    "註冊"
+                  )}
+                </Button>
+              </form>
+            )}
+
+            <div className="flex flex-col gap-4 text-center text-sm">
+              {/* Custom Forgot Password Link - Only show in sign_in view */}
+              {authView === 'sign_in' && (
+                <div className="flex justify-end px-1">
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <button className="text-sm font-medium text-muted-foreground hover:text-primary underline underline-offset-4">
+                        忘記密碼？
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>重設密碼</DialogTitle>
+                        <DialogDescription>
+                          請輸入您的電子郵件，我們將發送重設密碼連結給您。
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleResetPassword} className="space-y-4 mt-2">
+                        <div className="space-y-2 text-left">
+                          <Label htmlFor="reset-email">電子郵件</Label>
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            placeholder="您的信箱"
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={isResetting || cooldown > 0}>
+                          {isResetting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              發送中...
+                            </>
+                          ) : cooldown > 0 ? (
+                            `請稍候 ${cooldown} 秒`
+                          ) : (
+                            "發送重設信件"
+                          )}
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    或
+                  </span>
+                </div>
+              </div>
+
+              {/* Custom Sign In / Sign Up Toggle */}
+              <button
                 onClick={() => setAuthView(authView === 'sign_in' ? 'sign_up' : 'sign_in')}
-                className="text-sm hover:underline underline-offset-4"
-            >
-                {authView === 'sign_in' 
-                        ? "還沒有帳號？註冊新帳號" 
-                        : "已經有帳號？登入"
+                className="text-sm hover:underline underline-offset-4 text-primary"
+              >
+                {authView === 'sign_in'
+                  ? "還沒有帳號？註冊新帳號"
+                  : "已經有帳號？登入"
                 }
-            </button>
+              </button>
             </div>
           </div>
         </div>

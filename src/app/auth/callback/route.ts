@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const type = requestUrl.searchParams.get('type')
-  const next = requestUrl.searchParams.get('next') || '/dashboard'
+  const next = requestUrl.searchParams.get('next') || '/dashboard/spaces'
 
   if (code) {
     const cookieStore = await cookies()
@@ -18,32 +18,31 @@ export async function GET(request: NextRequest) {
       supabaseAnonKey,
       {
         cookies: {
-            getAll() {
-                return cookieStore.getAll()
-            },
-            setAll(cookiesToSet) {
-                try {
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                    cookieStore.set(name, value, options)
-                    )
-                } catch {}
-            },
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {}
+          },
         },
       }
     )
-    
+
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    
+
     if (!error) {
-        // 根據 type 決定重定向目標
-        // signup: 註冊確認後導向 dashboard
-        // recovery: 重設密碼流程導向 reset-password
-        const redirectPath = type === 'recovery' ? '/reset-password' : next
-        return NextResponse.redirect(new URL(redirectPath, request.url))
+      // 根據 type 決定重定向目標
+      // signup: 註冊確認後導向 spaces
+      // recovery: 重設密碼流程導向 reset-password
+      const redirectPath = type === 'recovery' ? '/reset-password' : next
+      return NextResponse.redirect(new URL(redirectPath, request.url))
     }
   }
 
   // Return the user to an error page with instructions
   return NextResponse.redirect(new URL('/login?error=auth-code-error', request.url))
 }
-
