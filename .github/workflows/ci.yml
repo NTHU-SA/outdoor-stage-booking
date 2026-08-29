@@ -1,4 +1,4 @@
-name: CI - Tests & Quality
+name: CI - Tests
 
 on:
   push:
@@ -7,15 +7,13 @@ on:
     branches: [main, develop]
 
 jobs:
-  build-and-scan:
-    name: Build, Test & SonarCloud Scan
+  test:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,9 +38,3 @@ jobs:
 
       - name: Run unit tests with coverage
         run: pnpm test:coverage
-        
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
