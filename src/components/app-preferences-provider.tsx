@@ -21,6 +21,19 @@ type TranslationKey =
   | "sidebar.guest"
   | "sidebar.clickToLogin"
   | "sidebar.signOut"
+  | "nav.rules"
+  | "nav.calendar"
+  | "nav.spaces"
+  | "nav.myBookings"
+  | "nav.settings"
+  | "nav.admin"
+  | "nav.admin.approvals"
+  | "nav.admin.rooms"
+  | "nav.admin.users"
+  | "nav.guest"
+  | "nav.login"
+  | "nav.profile"
+  | "nav.signOut"
   | "settings.title"
   | "settings.description"
   | "settings.theme.title"
@@ -63,6 +76,14 @@ type TranslationKey =
   | "myBookings.status.rejected"
   | "myBookings.status.pending"
   | "myBookings.status.cancelled"
+  | "rules.step1"
+  | "rules.step2"
+  | "rules.step3"
+  | "rules.acknowledgeTitle"
+  | "rules.acknowledgeCheckbox"
+  | "rules.btnUnderstandLogin"
+  | "rules.btnUnderstandSpaces"
+  | "rules.mustCheckNotice"
 
 const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
   zh: {
@@ -79,6 +100,19 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     "sidebar.guest": "訪客",
     "sidebar.clickToLogin": "點此登入",
     "sidebar.signOut": "登出",
+    "nav.rules": "借用須知",
+    "nav.calendar": "總覽日曆",
+    "nav.spaces": "借用空間",
+    "nav.myBookings": "我的預約",
+    "nav.settings": "偏好設定",
+    "nav.admin": "管理功能",
+    "nav.admin.approvals": "預約管理",
+    "nav.admin.rooms": "空間管理",
+    "nav.admin.users": "人員管理",
+    "nav.guest": "訪客",
+    "nav.login": "登入",
+    "nav.profile": "個人資料",
+    "nav.signOut": "登出",
     "settings.title": "顯示與語言",
     "settings.description": "可調整主題與語言。預設為中文。",
     "settings.theme.title": "主題",
@@ -121,6 +155,14 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     "myBookings.status.rejected": "已拒絕",
     "myBookings.status.pending": "待審核",
     "myBookings.status.cancelled": "已取消",
+    "rules.step1": "步驟 1：閱讀須知",
+    "rules.step2": "步驟 2：登入帳號",
+    "rules.step3": "步驟 3：選取時間預約",
+    "rules.acknowledgeTitle": "借用須知確認",
+    "rules.acknowledgeCheckbox": "我已詳閱並充分了解國立清華大學學生會野台借用須知及各項規範",
+    "rules.btnUnderstandLogin": "我已了解，前往登入",
+    "rules.btnUnderstandSpaces": "我已了解，前往預約空間",
+    "rules.mustCheckNotice": "請先勾選同意上述借用規範",
   },
   en: {
     "sidebar.section.booking": "Outdoor Stage",
@@ -136,6 +178,19 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     "sidebar.guest": "Guest",
     "sidebar.clickToLogin": "Click to sign in",
     "sidebar.signOut": "Sign out",
+    "nav.rules": "Rules",
+    "nav.calendar": "Calendar",
+    "nav.spaces": "Spaces",
+    "nav.myBookings": "My Bookings",
+    "nav.settings": "Settings",
+    "nav.admin": "Admin",
+    "nav.admin.approvals": "Bookings",
+    "nav.admin.rooms": "Spaces",
+    "nav.admin.users": "Users",
+    "nav.guest": "Guest",
+    "nav.login": "Sign In",
+    "nav.profile": "Profile",
+    "nav.signOut": "Sign Out",
     "settings.title": "Display & Language",
     "settings.description": "Control color theme and language. Browser preference is used when set to System.",
     "settings.theme.title": "Theme",
@@ -178,6 +233,14 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     "myBookings.status.rejected": "Rejected",
     "myBookings.status.pending": "Pending",
     "myBookings.status.cancelled": "Cancelled",
+    "rules.step1": "Step 1: Read Rules",
+    "rules.step2": "Step 2: Sign In",
+    "rules.step3": "Step 3: Select Time & Book",
+    "rules.acknowledgeTitle": "Acknowledge Rules",
+    "rules.acknowledgeCheckbox": "I have read and fully understand the Outdoor Stage Booking Rules and regulations.",
+    "rules.btnUnderstandLogin": "I Understand, Proceed to Sign In",
+    "rules.btnUnderstandSpaces": "I Understand, Proceed to Spaces",
+    "rules.mustCheckNotice": "Please check the box to agree to the rules.",
   },
   ja: {
     "sidebar.section.booking": "野外ステージ",
@@ -193,6 +256,19 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     "sidebar.guest": "ゲスト",
     "sidebar.clickToLogin": "ログイン",
     "sidebar.signOut": "ログアウト",
+    "nav.rules": "利用ルール",
+    "nav.calendar": "カレンダー",
+    "nav.spaces": "スペース一覧",
+    "nav.myBookings": "予約一覧",
+    "nav.settings": "設定",
+    "nav.admin": "管理者メニュー",
+    "nav.admin.approvals": "予約管理",
+    "nav.admin.rooms": "スペース管理",
+    "nav.admin.users": "ユーザー管理",
+    "nav.guest": "ゲスト",
+    "nav.login": "ログイン",
+    "nav.profile": "プロフィール",
+    "nav.signOut": "ログアウト",
     "settings.title": "表示と言語",
     "settings.description": "配色テーマと言語を設定します。システム選択時はブラウザ設定に従います。",
     "settings.theme.title": "テーマ",
@@ -224,7 +300,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     "myBookings.col.date": "日付",
     "myBookings.col.time": "時間帯",
     "myBookings.col.purpose": "利用目的",
-    "myBookings.col.status": "状態",
+    "myBookings.col.status": "狀態",
     "myBookings.col.createdAt": "申請日時",
     "myBookings.col.actions": "操作",
     "myBookings.emptyHistory": "予約履歴はまだありません",
@@ -235,6 +311,14 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     "myBookings.status.rejected": "却下",
     "myBookings.status.pending": "審査中",
     "myBookings.status.cancelled": "キャンセル済み",
+    "rules.step1": "ステップ 1：規約確認",
+    "rules.step2": "ステップ 2：ログイン",
+    "rules.step3": "ステップ 3：日時選択と予約",
+    "rules.acknowledgeTitle": "利用規約の同意確認",
+    "rules.acknowledgeCheckbox": "国立清華大学学生会の野外ステージ利用規約と関連規定を確認し、理解しました。",
+    "rules.btnUnderstandLogin": "了解してログインへ進む",
+    "rules.btnUnderstandSpaces": "了解してスペース一覧へ",
+    "rules.mustCheckNotice": "利用規約への同意にチェックを入れてください。",
   },
 }
 
