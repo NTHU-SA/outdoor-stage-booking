@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import Image from "next/image"
 import { useTheme } from "next-themes"
@@ -18,14 +16,12 @@ import {
   Zap,
   Ban,
   Mail,
-  CheckCircle2,
   ArrowRight,
   LogIn,
   LayoutGrid,
 } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
 import { useAppPreferences } from "@/components/app-preferences-provider"
-import { toast } from "sonner"
 
 export default function RulesPage() {
   const SA_EMAIL = "nthusa@gapp.nthu.edu.tw"
@@ -34,7 +30,6 @@ export default function RulesPage() {
   const { t } = useAppPreferences()
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const [hasAcknowledged, setHasAcknowledged] = useState(false)
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null)
 
   useEffect(() => {
@@ -48,11 +43,6 @@ export default function RulesPage() {
     : { src: "/booking-flow-1.png", alt: "借用流程圖", label: "流程圖" }
 
   const handleProceed = () => {
-    if (!hasAcknowledged) {
-      toast.error(t("rules.mustCheckNotice"))
-      return
-    }
-
     if (user) {
       router.push("/dashboard/spaces")
     } else {
@@ -103,9 +93,6 @@ export default function RulesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">野台借用須知</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            請完整閱讀下列借用規範，確認無誤後即可前往登入與預約空間。
-          </p>
         </div>
       </div>
 
@@ -433,54 +420,27 @@ export default function RulesPage() {
         </CardContent>
       </Card>
 
-      {/* 借用須知確認卡片 (Acknowledgment Action Card) */}
-      <Card className="border-2 border-primary/30 bg-card shadow-md">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
-            {t("rules.acknowledgeTitle")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start gap-3 p-3.5 rounded-lg bg-muted/50 border">
-            <Checkbox
-              id="rules-agree"
-              checked={hasAcknowledged}
-              onCheckedChange={(checked) => setHasAcknowledged(checked === true)}
-              className="mt-0.5"
-            />
-            <Label
-              htmlFor="rules-agree"
-              className="text-sm font-medium leading-relaxed cursor-pointer"
-            >
-              {t("rules.acknowledgeCheckbox")}
-            </Label>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between border-t pt-4 bg-muted/20">
-          <p className="text-xs text-muted-foreground">
-            {hasAcknowledged ? "✓ 已完成閱讀確認" : "請勾選上方同意方塊以繼續"}
-          </p>
-          <Button
-            size="lg"
-            onClick={handleProceed}
-            className="gap-2 font-semibold shadow-sm"
-          >
-            {user ? (
-              <>
-                <LayoutGrid className="h-4 w-4" />
-                <span>{t("rules.btnUnderstandSpaces")}</span>
-              </>
-            ) : (
-              <>
-                <LogIn className="h-4 w-4" />
-                <span>{t("rules.btnUnderstandLogin")}</span>
-              </>
-            )}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </CardFooter>
-      </Card>
+      {/* 底部「我已了解」按鈕 */}
+      <div className="flex flex-col items-center justify-center pt-2 pb-6">
+        <Button
+          size="lg"
+          onClick={handleProceed}
+          className="w-full sm:w-auto min-w-[240px] text-base font-semibold shadow-md gap-2.5 h-12"
+        >
+          {user ? (
+            <>
+              <LayoutGrid className="h-5 w-5" />
+              <span>{t("rules.btnUnderstandSpaces")}</span>
+            </>
+          ) : (
+            <>
+              <LogIn className="h-5 w-5" />
+              <span>{t("rules.btnUnderstandLogin")}</span>
+            </>
+          )}
+          <ArrowRight className="h-5 w-5" />
+        </Button>
+      </div>
 
       {/* 圖片預覽彈窗 */}
       <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
