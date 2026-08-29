@@ -1,7 +1,5 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppNavbar } from "@/components/app-navbar"
 import { AppFooter } from "@/components/app-footer"
-import Image from "next/image"
 
 export default async function DashboardLayout({
   children,
@@ -9,26 +7,12 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <main className="flex min-h-svh flex-1 flex-col w-full">
-        {/* Desktop quick restore trigger to avoid losing sidebar access when collapsed */}
-        <div className="hidden md:flex items-center px-4 md:px-8 pt-3">
-          <SidebarTrigger className="size-8" />
-        </div>
-
-        {/* Mobile-only sticky header with hamburger menu */}
-        <div className="sticky top-0 z-40 flex items-center gap-3 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 px-4 py-3 md:hidden">
-          <SidebarTrigger className="size-8" />
-          <div className="flex items-center gap-2">
-            <Image src="/banner.png" height="200" width="200" alt="Logo" className="object-contain" />
-            <span className="font-semibold text-lg text-[#B482BC]">野台借用系統</span>
-          </div>
-        </div>
-        <div className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">{children}</div>
-        <AppFooter showOnDashboard />
+    <div className="min-h-screen flex flex-col bg-background">
+      <AppNavbar />
+      <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">
+        {children}
       </main>
-    </SidebarProvider>
+      <AppFooter showOnDashboard />
+    </div>
   )
 }
-
